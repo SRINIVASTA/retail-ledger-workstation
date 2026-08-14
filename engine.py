@@ -149,3 +149,68 @@ def generate_exposure_plotly(df: pd.DataFrame, product_selection: str):
     )
 
     return fig
+
+import plotly.express as px
+
+
+def generate_delinquency_funnel(df: pd.DataFrame, title_prefix: str):
+    """Generates an interactive Plotly Funnel Chart tracking loan stage degradation."""
+    counts = compute_bucket_counts(df)
+
+    # Map your application's bucket counts into a clean sequential list
+    funnel_data = dict(
+        Stage=[
+            "Bucket 0 (Current)",
+            "Bucket 1 (1-30 DPD)",
+            "Bucket 2 (31-60 DPD)",
+            "Bucket 3 (61-90 DPD)",
+            "Bucket 4 (91+ DPD)",
+        ],
+        Accounts=[
+            counts["b0"],
+            counts["b1"],
+            counts["b2"],
+            counts["b3"],
+            counts["b4"],
+        ],
+    )
+
+    funnel_df = pd.DataFrame(funnel_data)
+
+    # Build the funnel geometry plot
+    fig = px.funnel(
+        funnel_df,
+        x="Accounts",
+        y="Stage",
+        color="Stage",
+        color_discrete_map={
+            "Bucket 0 (Current)": "#27ae60",
+            "Bucket 1 (1-30 DPD)": "#f1c40f",
+            "Bucket 2 (31-60 DPD)": "#e67e22",
+            "Bucket 3 (61-90 DPD)": "#d35400",
+            "Bucket 4 (91+ DPD)": "#c0392b",
+        },
+    )
+
+    fig.update_layout(
+        title={
+            "text": f"<b>📉 Delinquency Pipeline Funnel ({title_prefix})</b>",
+            "y": 0.95,
+            "x": 0.5,
+            "xanchor": "center",
+            "yanchor": "top",
+            "font": {"size": 13, "color": "#2c3e50"},
+        },
+        showlegend=False,
+        margin=dict(t=50, b=20, l=20, r=20),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+    )
+
+    fig.update_traces(
+        textinfo="value+percent initial",
+        hovertemplate="<b>%{y}</b><br>Active Accounts: %{x}<br>% of Initial Stage: %{percentInitial:.1%}",
+    )
+
+    return fig
+
