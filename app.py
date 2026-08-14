@@ -119,13 +119,17 @@ left_panel, right_panel = st.columns(2)
 with left_panel:
     st.markdown("### 🔍 108-Header Cross-Product Audit Inspector")
     
+    # 1. Filter out data based on selected category (e.g., PERSONAL_LOAN)
     filtered_df = portfolio_df[portfolio_df["PRODUCT_CATEGORY"] == "PERSONAL_LOAN"] if "PRODUCT_CATEGORY" in portfolio_df.columns else portfolio_df
     
+    # 2. Prevent breaks if file isn't parsed yet
     if filtered_df.empty:
         st.info("📂 Please complete Step 1: Upload Portfolio Ledger CSV file above.")
     else:
+        # 3. Pull actual UCIC keys from data matrix for easy collection selection
         available_ucics = sorted(filtered_df["UCIC"].dropna().unique().tolist())
         
+        # 4. Interactive selection
         target_id = st.selectbox(
             "Select Active Customer UCIC Key to Inspect:", 
             options=available_ucics,
@@ -136,7 +140,7 @@ with left_panel:
             record = filtered_df[filtered_df["UCIC"] == target_id]
             
             if not record.empty:
-                # Convert the individual dataframe row directly to a dict frame
+                # FIXED: Added [0] row index locator before calling to_dict()
                 row_slice = record.iloc[0].to_dict()
                 
                 st.subheader(f"🛡️ Audit Inspector Panel: {target_id}")
