@@ -135,7 +135,7 @@ with left_panel:
 
         if target_id:
             record = filtered_df[filtered_df["UCIC"] == target_id]
-            row_slice = record.iloc[0].to_dict()
+            row_slice = record.iloc.to_dict()
             
             st.subheader(f"🛡️ Audit Inspector Panel: {target_id}")
             
@@ -191,7 +191,7 @@ with left_panel:
             message = str(playbook["message"])
             strategy_action = str(playbook["strategy_action"])
 
-            # Render HTML layout banner smoothly
+            # FIXED: Changed unsafe_html=True to unsafe_allow_html=True
             st.markdown(
                 f"""
                 <div style="background-color: {ui_color}12; 
@@ -211,7 +211,7 @@ with left_panel:
                     </p>
                 </div>
                 """, 
-                unsafe_html=True
+                unsafe_allow_html=True
             )
             # --------------------------------------------------------------
             
@@ -222,7 +222,6 @@ with left_panel:
             st.write(f"**Loan Account No:** {row_slice.get('LOAN_NO', '')}")
             st.write(f"**Original Disbursal Date:** {row_slice.get('DISB_DATE', '')}")
             
-            # Force numeric conversion for output fields to prevent string format errors
             try:
                 disb_amt = int(float(row_slice.get('LAN_DISB_AMT', 0)))
                 st.write(f"**Disbursed Principal:** ₹{disb_amt:,}")
@@ -268,13 +267,14 @@ with left_panel:
             
             pdf_payload = engine.generate_audit_pdf(target_id, row_slice)
             
+            # FIXED: Replaced use_container_width=True with width='stretch'
             st.download_button(
                 label="Download Executive PDF Audit Report",
                 data=pdf_payload,
                 file_name=f"Audit_Report_{target_id}.pdf",
                 mime="application/pdf",
                 type="primary",
-                use_container_width=True
+                width="stretch"
             )
 
 with right_panel:
@@ -282,4 +282,5 @@ with right_panel:
     if base_df.empty: 
         st.info("⚠️ No data available to plot chart analysis.")
     else: 
-        st.plotly_chart(engine.generate_exposure_plotly(base_df, product_dropdown), use_container_width=True)
+        # FIXED: Replaced use_container_width=True with width='stretch'
+        st.plotly_chart(engine.generate_exposure_plotly(base_df, product_dropdown), width="stretch")
