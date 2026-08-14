@@ -124,7 +124,7 @@ with left_panel:
             if record.empty: 
                 st.error(f"❌ Error: Account key '{target_id}' does not exist.")
             else:
-                row_slice = record.iloc.to_dict()
+                row_slice = record.iloc[0].to_dict()
                 
                 st.subheader(f"🛡️ Audit Inspector Panel: {target_id}")
                 
