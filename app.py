@@ -108,6 +108,8 @@ st.dataframe(base_df[available_cols], use_container_width=True, hide_index=True)
 # SPLIT LAYOUT PANEL (AUDIT INSPECTOR & PLOTLY VISUALIZATIONS)
 # ==============================================================================
 import collections_engine  # Ensure collections_engine.py is in your root folder!
+# Add this import at the top of your existing app.py file
+
 # ==============================================================================
 # SPLIT LAYOUT PANEL (AUDIT INSPECTOR & PLOTLY VISUALIZATIONS)
 # ==============================================================================
@@ -116,17 +118,13 @@ left_panel, right_panel = st.columns(2)
 with left_panel:
     st.markdown("### 🔍 108-Header Cross-Product Audit Inspector")
     
-    # 1. Filter out data based on selected category (e.g., PERSONAL_LOAN)
     filtered_df = portfolio_df[portfolio_df["PRODUCT_CATEGORY"] == "PERSONAL_LOAN"] if "PRODUCT_CATEGORY" in portfolio_df.columns else portfolio_df
     
-    # 2. Prevent breaks if file isn't parsed yet
     if filtered_df.empty:
         st.info("📂 Please complete Step 1: Upload Portfolio Ledger CSV file above.")
     else:
-        # 3. Pull actual UCIC keys from data matrix for easy collection selection
         available_ucics = sorted(filtered_df["UCIC"].dropna().unique().tolist())
         
-        # 4. Interactive selection
         target_id = st.selectbox(
             "Select Active Customer UCIC Key to Inspect:", 
             options=available_ucics,
@@ -136,87 +134,33 @@ with left_panel:
         if target_id:
             record = filtered_df[filtered_df["UCIC"] == target_id]
             
-            if record.empty:
-                st.warning(f"⚠️ No matching records found for UCIC: {target_id}")
-            else:
-                # FIXED: Extract index position 0 before calling to_dict()
-                row_slice = record.iloc[0].to_dict()
+            if not record.empty:
+                row_slice = record.iloc.to_dict()
                 
                 st.subheader(f"🛡️ Audit Inspector Panel: {target_id}")
                 
                 # --------------------------------------------------------------
-                # INLINE 0-4 COLLECTION BUCKET LOGIC (Bypasses Cache Bugs)
+                # EXECUTIVE REPORT HEADER GENERATION
                 # --------------------------------------------------------------
-                try:
-                    bucket_val = int(float(row_slice.get('LAN_BKT', 0)))
-                except (ValueError, TypeError):
-                    bucket_val = 0
-
-                # Define configuration dictionaries cleanly inside app.py
-                if bucket_val == 0:
-                    playbook = {
-                        "ui_color": "#2E7D32", "tag_name": "GROWTH",
-                        "stage_name": "Bucket 0: Fully Performing Asset",
-                        "message": "🟢 This loan is completely current. Account behavior is healthy.",
-                        "strategy_action": "Account is safe. High priority candidate for pre-approved multi-product top-ups, gold loans, or interest rate drops."
-                    }
-                elif bucket_val == 1:
-                    playbook = {
-                        "ui_color": "#1976D2", "tag_name": "SOFT NUDGE",
-                        "stage_name": "Bucket 1: Early Delinquency (SMA-0)",
-                        "message": "🔵 Missed current cycle billing installment. 1-30 Days Past Due.",
-                        "strategy_action": "Send automated digital nudges (WhatsApp/SMS links). Trigger soft IVR voice drops. Likely a payroll cycle mismatch."
-                    }
-                elif bucket_val == 2:
-                    playbook = {
-                        "ui_color": "#EF6C00", "tag_name": "INTENSE CALLING",
-                        "stage_name": "Bucket 2: Early Stress Delinquency (SMA-1)",
-                        "message": "🟠 Consecutive second cycle bouncing. 31-60 Days Past Due.",
-                        "strategy_action": "Route file to live outbound tele-calling desks. Lock in a formal Promise-to-Pay (PTP) date with follow-up confirmation."
-                    }
-                elif bucket_val == 3:
-                    playbook = {
-                        "ui_color": "#C62828", "tag_name": "FIELD DEPLOYMENT",
-                        "stage_name": "Bucket 3: Severe Delinquency (SMA-2)",
-                        "message": "🔴 Pre-NPA Warning Threshold. 61-90 Days Past Due.",
-                        "strategy_action": "Deploy designated area field agents for a direct doorstep visit. Initiate financial restructuring or loan-term extension talks."
-                    }
-                else:
-                    playbook = {
-                        "ui_color": "#B71C1C", "tag_name": "LEGAL RECOVERY",
-                        "stage_name": "Bucket 4: Non-Performing Asset (NPA / Default)",
-                        "message": "💀 Permanent Impairment. Over 90 Days Past Due.",
-                        "strategy_action": "Freeze credit limits across all connected products. Issue formal legal notices, pull collateral records, or clear for repo settlement."
-                    }
+                b_code, b_class, b_playbook, b_color = collections_report_engine.generate_audit_bucket_metadata(row_slice)
                 
-                # Explicitly force clean string formatting to prevent any markdown component errors
-                ui_color = str(playbook["ui_color"])
-                tag_name = str(playbook["tag_name"])
-                stage_name = str(playbook["stage_name"])
-                message = str(playbook["message"])
-                strategy_action = str(playbook["strategy_action"])
-
-                st.markdown(
-                    f"""
-                    <div style="background-color: {ui_color}12; 
-                                padding: 15px; 
-                                border-left: 6px solid {ui_color}; 
-                                border-radius: 4px; 
-                                margin-top: 5px;
-                                margin-bottom: 20px;">
-                        <h4 style="margin: 0; color: {ui_color}; font-size: 15px; font-weight: 700;">
-                            [{tag_name}] — {stage_name}
-                        </h4>
-                        <p style="margin: 4px 0 0 0; font-size: 13px; color: #111111;">
-                            {message}
-                        </p>
-                        <p style="margin: 6px 0 0 0; font-size: 12.5px; font-weight: 600; color: #222222;">
-                            👉 <strong>Playbook Strategy Action:</strong> {strategy_action}
-                        </p>
-                    </div>
-                    """, 
-                    unsafe_allow_html=True
+                # Clean, professional layout using native Streamlit text components
+                st.markdown("##### 🏛️ Risk Regulatory Status Report")
+                
+                # Render using structured data metrics for standard reporting layouts
+                col_b1, col_b2 = st.columns(2)
+                col_b1.metric("Regulatory Bucket Code", b_code)
+                col_b2.metric("Portfolio Risk Tier", b_class)
+                
+                # Block for executive overview narrative
+                st.text_area(
+                    label="Official Mandated Playbook Strategy Directive:",
+                    value=b_playbook,
+                    height=90,
+                    disabled=True,
+                    help="Immutable policy directives governed by core risk compliance rule sets."
                 )
+                st.markdown("---")
                 # --------------------------------------------------------------
                 
                 st.markdown("##### 🏷️ Sourcing & Identification Parameters")
@@ -249,7 +193,7 @@ with left_panel:
                     st.write(f"**Loan Scheduled EMI:** ₹{row_slice.get('LOAN_EMI', 0)}")
                     st.write(f"**Principal Bal (LAN_POS):** ₹{row_slice.get('LAN_POS', 0)}")
                     st.write(f"**Total Exposure POS Risk:** ₹{row_slice.get('EXPOSURE_POS', 0)}")
-                    
+                
                 st.markdown("##### 🚨 Delinquency Buckets & Field Allocations")
                 st.error(f"**Days Past Due (LAN_DPD):** {row_slice.get('LAN_DPD', 0)} Days")
                 st.write(f"**Risk Bucket:** Bucket {row_slice.get('LAN_BKT', 0)}")
@@ -275,15 +219,14 @@ with left_panel:
                     label="Download Executive PDF Audit Report",
                     data=pdf_payload,
                     file_name=f"Audit_Report_{target_id}.pdf",
-                mime="application/pdf",
-                type="primary",
-                width="stretch"
-            )
+                    mime="application/pdf",
+                    type="primary",
+                    width="stretch"
+                )
 
 with right_panel:
     st.markdown("### 📊 Reconciled Capital Exposure Share Frame")
     if base_df.empty: 
         st.info("⚠️ No data available to plot chart analysis.")
     else: 
-        # FIXED: Replaced use_container_width=True with width='stretch'
         st.plotly_chart(engine.generate_exposure_plotly(base_df, product_dropdown), width="stretch")
