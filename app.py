@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-FILE_PATH = "data/loan_master_portfolio_5_buckets.csv"
+FILE_PATH = "loan_master_portfolio_5_buckets.csv"
 
 
 @st.cache_data
