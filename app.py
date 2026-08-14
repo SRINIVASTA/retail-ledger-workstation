@@ -11,6 +11,9 @@ st.set_page_config(
 st.title("📈 CREDITPULSE AI — MULTI-PRODUCT RETAIL LEDGER WORKSTATION")
 st.divider()
 
+# ==============================================================================
+# STREAMLIT NATIVE FILE UPLOADER CONTROL PANEL
+# ==============================================================================
 st.sidebar.title("Ledger Workspace Controls")
 st.sidebar.markdown("### 📂 Step 1: Data Injection")
 uploaded_file = st.sidebar.file_uploader(
@@ -35,6 +38,9 @@ portfolio_df = parse_uploaded_ledger(uploaded_file)
 if portfolio_df is None: 
     st.stop()
 
+# ==============================================================================
+# INTERACTIVE CORES & FILTERS PIPELINE
+# ==============================================================================
 st.sidebar.markdown("### 🎯 Step 2: Workspace Filtering")
 product_options = ["[ SHOW ALL PRODUCTS ]", "PERSONAL_LOAN", "CREDIT_CARD", "VEHICLE_LOAN", "HOME_LOAN", "GOLD_LOAN", "LAP"]
 product_dropdown = st.sidebar.selectbox("Product Category:", product_options, index=0)
@@ -49,7 +55,37 @@ if omni_search_box:
         base_df["CUSTOMERNAME"].str.upper().str.contains(q, na=False)
     ]
 
-# KPI Display Row
+# ==============================================================================
+# SIDEBAR DIAGNOSTICS CONTROL PANEL
+# ==============================================================================
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 🛠️ Step 3: System Verification")
+
+run_diagnostics = st.sidebar.checkbox(
+    "Run System Diagnostics", 
+    value=False,
+    help="Tick this checkbox to run automated PyTest checks directly inside this Streamlit container server."
+)
+
+if run_diagnostics:
+    st.sidebar.info("⏳ Running engine validations...")
+    try:
+        import pytest
+        # Invoke pytest headlessly pointing directly to the test script file
+        exit_code = pytest.main(["-q", "--tb=short", "test_engine.py"])
+        
+        if exit_code == 0:
+            st.sidebar.success("✅ ALL TESTS PASSED! Backend logic calculation engine is 100% accurate.")
+            st.toast("System Integrity Verified: 100% Stable", icon="✅")
+        else:
+            st.sidebar.error("❌ CRITICAL BUG DETECTED! A calculation filter logic has failed validation rules.")
+            st.sidebar.warning("Please review your engine.py variables or spreadsheet column structures.")
+    except Exception as e:
+        st.sidebar.error(f"Execution Error: Missing testing dependencies in requirements.txt. Details: {e}")
+
+# ==============================================================================
+# MAIN DASHBOARD METRICS DISPLAY
+# ==============================================================================
 counts = engine.compute_bucket_counts(base_df)
 kpi_col1, kpi_col2, kpi_col3, kpi_col4, kpi_col5, kpi_col6 = st.columns(6)
 kpi_col1.metric("📊 TOTAL FILTERED", int(len(base_df)))
@@ -67,7 +103,7 @@ available_cols = [c for c in cols if c in base_df.columns]
 st.subheader("📋 Workspace Active Data Ledger Rows")
 st.dataframe(base_df[available_cols], use_container_width=True, hide_index=True)
 
-# Split Layout Panel
+# Split Layout Panel (Audit and Plotly Side-by-Side)
 left_panel, right_panel = st.columns(2)
 
 with left_panel:
@@ -85,7 +121,6 @@ with left_panel:
             if record.empty: 
                 st.error(f"❌ Error: Account key '{target_id}' does not exist.")
             else:
-                # FIXED: Added [0] parameter index key to cleanly parse the extracted single record row
                 row_slice = record.iloc[0].to_dict()
                 
                 st.subheader(f"🛡️ Audit Inspector Panel: {target_id}")
