@@ -3,13 +3,14 @@ import plotly.express as px
 
 def compute_bucket_counts(df: pd.DataFrame) -> dict:
     """Calculates row counts across all 5 delinquency stages safely."""
+    # Convert the column to clean strings to prevent layout parsing mismatches
     bkt_series = df["LAN_BKT"].astype(str).str.strip()
     return {
         "b0": len(df[bkt_series == "0"]),
-        "b1": len(df[df_series == "1"]),
-        "b2": len(bkt_series == "2"),
-        "b3": len(bkt_series == "3"),
-        "b4": len(bkt_series == "4"),
+        "b1": len(df[bkt_series == "1"]),
+        "b2": len(df[bkt_series == "2"]),
+        "b3": len(df[bkt_series == "3"]),
+        "b4": len(df[bkt_series == "4"]),
     }
 
 def render_metrics_board_html(df: pd.DataFrame, product_dropdown: str) -> str:
