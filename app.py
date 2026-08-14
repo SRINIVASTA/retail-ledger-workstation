@@ -148,7 +148,7 @@ with left_panel:
                 # --------------------------------------------------------------
                 # EXECUTIVE REPORT HEADER GENERATION (IMMUTABLE DISK LAYOUT)
                 # --------------------------------------------------------------
-                b_code, b_class, b_playbook = collections_report_engine.LoanCollectionsReportEngine.generate_audit_bucket_metadata(row_slice)
+                b_code, b_class, b_playbook = LocalCollectionsReportEngine.generate_audit_bucket_metadata(row_slice)
                 
                 st.markdown("##### 🏛️ Risk Regulatory Status Report")
                 
