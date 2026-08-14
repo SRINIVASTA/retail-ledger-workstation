@@ -140,15 +140,16 @@ with left_panel:
             record = filtered_df[filtered_df["UCIC"] == target_id]
             
             if not record.empty:
-                # FIXED: Extract index position 0 safely using pandas Series indexing before parsing to dictionary
+                # SAFE EXTRACTION: Added explicit row location index before parsing to dictionary
                 row_slice = record.iloc[0].to_dict()
                 
                 st.subheader(f"🛡️ Audit Inspector Panel: {target_id}")
                 
                 # --------------------------------------------------------------
-                # EXECUTIVE REPORT HEADER GENERATION (IMMUTABLE DISK LAYOUT)
+                # EXECUTIVE REPORT HEADER GENERATION (DECOUPLED ROUTE)
                 # --------------------------------------------------------------
-                b_code, b_class, b_playbook = LocalCollectionsReportEngine.generate_audit_bucket_metadata(row_slice)
+                # Pulls parameters safely out from the external module dependency
+                b_code, b_class, b_playbook = collections_engine.LoanCollectionsReportEngine.generate_audit_bucket_metadata(row_slice)
                 
                 st.markdown("##### 🏛️ Risk Regulatory Status Report")
                 
