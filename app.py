@@ -57,7 +57,7 @@ kpi_col4.metric("🟠 BUCKET 2", int(counts['b2']))
 kpi_col5.metric("🔴 BUCKET 3", int(counts['b3']))
 kpi_col6.metric("☠️ BUCKET 4", int(counts['b4']))
 
-st.markdown(engine.render_metrics_board_html(base_df, product_dropdown), unsafe_html=True)
+st.markdown(body=engine.render_metrics_board_html(base_df, product_dropdown), unsafe_html=True)
 
 # Datagrid Panel
 cols = ["UCIC", "LAN_PDT", "MODULE", "LOAN_NO", "CUSTOMERNAME", "LOAN_EMI", "LAN_INST_OV_AMT", "LAN_DPD", "NPA_TYPE", "WRITEOFF_TAG"]
