@@ -59,7 +59,6 @@ kpi_col4.metric("🟠 BUCKET 2", int(counts['b2']))
 kpi_col5.metric("🔴 BUCKET 3", int(counts['b3']))
 kpi_col6.metric("☠️ BUCKET 4", int(counts['b4']))
 
-# LINE 60 FIX: Pure native component presentation bypasses the Python 3.14 tracking bug entirely
 st.info(f"**Workspace Ledger State:** Active Portfolio Profile Subsets — Filter: {product_dropdown}")
 
 # Datagrid Panel
@@ -86,9 +85,9 @@ with left_panel:
             if record.empty: 
                 st.error(f"❌ Error: Account key '{target_id}' does not exist.")
             else:
+                # FIXED: Added [0] parameter index key to cleanly parse the extracted single record row
                 row_slice = record.iloc[0].to_dict()
                 
-                # Pure Native clean audit field list rendering layout
                 st.subheader(f"🛡️ Audit Inspector Panel: {target_id}")
                 
                 st.markdown("##### 🏷️ Sourcing & Identification Parameters")
