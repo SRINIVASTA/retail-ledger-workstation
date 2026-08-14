@@ -87,20 +87,23 @@ if omni_search_box:
     ]
 
 # ==============================================================================
-# DASHBOARD OUTPUT DISPLAY (Native KPI Row Layout)
+# DASHBOARD OUTPUT DISPLAY (Fixed Native KPI Metric Row Layout)
 # ==============================================================================
 # Extract exact sub-metrics using decoupled functional computations
 counts = engine.compute_bucket_counts(base_df)
 
+# Initialize a clean horizontal grid layout wrapper array 
 kpi_col1, kpi_col2, kpi_col3, kpi_col4, kpi_col5, kpi_col6 = st.columns(6)
-kpi_col1.metric("📊 TOTAL FILTERED", f"{len(base_df)} Rows")
-kpi_col2.metric("🟢 BUCKET 0", f"{counts['b0']} Rows")
-kpi_col3.metric("🟡 BUCKET 1", f"{counts['b1']} Rows")
-kpi_col4.metric("🟠 BUCKET 2", f"{counts['b2']} Rows")
-kpi_col5.metric("🔴 BUCKET 3", f"{counts['b3']} Rows")
-kpi_col6.metric("☠️ BUCKET 4", f"{counts['b4']} Rows")
 
-# Sub-context information banner box
+# Separate the numeric value completely from the layout string tags
+kpi_col1.metric(label="📊 TOTAL FILTERED", value=int(len(base_df)), help="Current filtered workspace active rows")
+kpi_col2.metric(label="🟢 BUCKET 0", value=int(counts['b0']))
+kpi_col3.metric(label="🟡 BUCKET 1", value=int(counts['b1']))
+kpi_col4.metric(label="🟠 BUCKET 2", value=int(counts['b2']))
+kpi_col5.metric(label="🔴 BUCKET 3", value=int(counts['b3']))
+kpi_col6.metric(label="☠️ BUCKET 4", value=int(counts['b4']))
+
+# Sub-context informational status box banner 
 st.success(f"**Workspace Ledger State:** Active Portfolio Profile Subsets — Filter: {product_dropdown}")
 
 # Datagrid Panel
