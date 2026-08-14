@@ -10,17 +10,17 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Render Title Header Banner
-st.markdown(
-    """
-    <div style='background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 18px; text-align: center; border-radius: 6px; margin-bottom: 20px;'>
-        <h2 style='color: white; margin: 0; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI"; font-weight: 600; letter-spacing: 0.5px;'>
-            📈 CREDITPULSE AI — MULTI-PRODUCT RETAIL LEDGER WORKSTATION
-        </h2>
-    </div>
-""",
-    unsafe_html=True,
-)
+# ==============================================================================
+# PROD HEADER BANNER 
+# ==============================================================================
+banner_html = """
+<div style='background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 18px; text-align: center; border-radius: 6px; margin-bottom: 20px;'>
+    <h2 style='color: white; margin: 0; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI"; font-weight: 600; letter-spacing: 0.5px;'>
+        📈 CREDITPULSE AI — MULTI-PRODUCT RETAIL LEDGER WORKSTATION
+    </h2>
+</div>
+"""
+st.markdown(banner_html, unsafe_html=True)
 
 # ==============================================================================
 # STREAMLIT NATIVE FILE UPLOADER CONTROL PANEL
@@ -37,18 +37,15 @@ uploaded_file = st.sidebar.file_uploader(
 
 # Block dashboard presentation until user successfully drops a CSV dataset stream
 if uploaded_file is None:
-    st.info("👋 **Welcome to CreditPulse AI!** To begin managing cross-product risk, please upload your portfolio ledger CSV file using the container panel in the sidebar.")
+    st.info("💡 **Welcome to CreditPulse AI!** To begin managing cross-product risk, please upload your portfolio ledger CSV file using the container panel in the sidebar.")
     
-    # GitHub styled placeholder helper box layout
-    st.markdown(
-        """
-        <div style='border: 1px dashed #d0d7de; padding: 40px; text-align: center; border-radius: 6px; background-color: #f6f8fa; margin-top: 20px;'>
-            <h3 style='color: #57606a; margin: 0 0 8px 0;'>Workspace Ledger is currently empty</h3>
-            <p style='color: #57606a; margin: 0; font-size: 14px;'>Use the <b>"Upload Portfolio Ledger CSV File"</b> browser tool on the left to inject active customer records.</p>
-        </div>
-        """,
-        unsafe_html=True
-    )
+    placeholder_html = """
+    <div style='border: 1px dashed #d0d7de; padding: 40px; text-align: center; border-radius: 6px; background-color: #f6f8fa; margin-top: 20px;'>
+        <h3 style='color: #57606a; margin: 0 0 8px 0;'>Workspace Ledger is currently empty</h3>
+        <p style='color: #57606a; margin: 0; font-size: 14px;'>Use the <b>"Upload Portfolio Ledger CSV File"</b> browser tool on the left to inject active customer records.</p>
+    </div>
+    """
+    st.markdown(placeholder_html, unsafe_html=True)
     st.stop()
 
 # Cache parsed user uploaded byte buffers safely in system memory indices
@@ -152,9 +149,9 @@ with left_panel:
                     f"❌ Error: Account key '{target_id}' does not exist inside system memory indices."
                 )
             else:
-                inspector_html = engine.render_audit_inspector_html(
-                    target_id, record.iloc.to_dict()
-                )
+                # Use a specific index slice operation safely
+                row_slice = record.iloc[0].to_dict()
+                inspector_html = engine.render_audit_inspector_html(target_id, row_slice)
                 st.markdown(inspector_html, unsafe_html=True)
 
 with right_panel:
