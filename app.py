@@ -6,7 +6,7 @@ import streamlit as st
 import engine
 
 st.set_page_config(
-    page_title="Multi-Product Retail Ledger Workstation",
+    page_title="CreditPulse AI Workstation",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -65,9 +65,9 @@ if omni_search_box:
 # Render Title Header Banner
 st.markdown(
     """
-    <div style='background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%); padding: 16px; text-align: center; border-radius: 6px; margin-bottom: 20px;'>
-        <h2 style='color: white; margin: 0; font-family: -apple-system; font-weight: 600;'>
-            MULTI-PRODUCT RETAIL LEDGER WORKSTATION
+    <div style='background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 18px; text-align: center; border-radius: 6px; margin-bottom: 20px;'>
+        <h2 style='color: white; margin: 0; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI"; font-weight: 600; letter-spacing: 0.5px;'>
+            📈 CREDITPULSE AI — MULTI-PRODUCT RETAIL LEDGER WORKSTATION
         </h2>
     </div>
 """,
@@ -133,5 +133,6 @@ with right_panel:
     if base_df.empty:
         st.info("⚠️ No data available for selected filters to plot chart analysis.")
     else:
-        chart_figure = engine.generate_exposure_pie(base_df, product_dropdown)
-        st.pyplot(chart_figure)
+        # Render clean native Plotly chart tracking calculations
+        chart_figure = engine.generate_exposure_plotly(base_df, product_dropdown)
+        st.plotly_chart(chart_figure, use_container_width=True)
