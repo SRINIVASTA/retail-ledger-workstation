@@ -11,16 +11,17 @@ st.set_page_config(
 )
 
 # ==============================================================================
-# PROD HEADER BANNER 
+# PROD HEADER BANNER (Python 3.14 Bulletproof Fix)
 # ==============================================================================
-banner_html = """
-<div style='background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 18px; text-align: center; border-radius: 6px; margin-bottom: 20px;'>
-    <h2 style='color: white; margin: 0; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI"; font-weight: 600; letter-spacing: 0.5px;'>
-        📈 CREDITPULSE AI — MULTI-PRODUCT RETAIL LEDGER WORKSTATION
-    </h2>
-</div>
-"""
-st.markdown(banner_html, unsafe_html=True)
+banner_html = (
+    "<div style='background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); "
+    "padding: 18px; text-align: center; border-radius: 6px; margin-bottom: 20px;'>"
+    "<h2 style='color: white; margin: 0; font-family: -apple-system,BlinkMacSystemFont,\"Segoe UI\"; "
+    "font-weight: 600; letter-spacing: 0.5px;'>📈 CREDITPULSE AI — MULTI-PRODUCT RETAIL LEDGER WORKSTATION</h2>"
+    "</div>"
+)
+# Passing body as an explicit named keyword parameter to satisfy Python 3.14 argument tracking
+st.markdown(body=banner_html, unsafe_html=True)
 
 # ==============================================================================
 # STREAMLIT NATIVE FILE UPLOADER CONTROL PANEL
@@ -28,27 +29,25 @@ st.markdown(banner_html, unsafe_html=True)
 st.sidebar.title("Ledger Workspace Controls")
 
 st.sidebar.markdown("### 📂 Step 1: Data Injection")
-# File uploader box explicitly locking down format verification parameters
 uploaded_file = st.sidebar.file_uploader(
     "Upload Portfolio Ledger CSV File", 
     type=["csv"],
     help="Upload your credit portfolio file containing required operational ledger fields."
 )
 
-# Block dashboard presentation until user successfully drops a CSV dataset stream
 if uploaded_file is None:
     st.info("💡 **Welcome to CreditPulse AI!** To begin managing cross-product risk, please upload your portfolio ledger CSV file using the container panel in the sidebar.")
     
-    placeholder_html = """
-    <div style='border: 1px dashed #d0d7de; padding: 40px; text-align: center; border-radius: 6px; background-color: #f6f8fa; margin-top: 20px;'>
-        <h3 style='color: #57606a; margin: 0 0 8px 0;'>Workspace Ledger is currently empty</h3>
-        <p style='color: #57606a; margin: 0; font-size: 14px;'>Use the <b>"Upload Portfolio Ledger CSV File"</b> browser tool on the left to inject active customer records.</p>
-    </div>
-    """
-    st.markdown(placeholder_html, unsafe_html=True)
+    placeholder_html = (
+        "<div style='border: 1px dashed #d0d7de; padding: 40px; text-align: center; "
+        "border-radius: 6px; background-color: #f6f8fa; margin-top: 20px;'>"
+        "<h3 style='color: #57606a; margin: 0 0 8px 0;'>Workspace Ledger is currently empty</h3>"
+        "<p style='color: #57606a; margin: 0; font-size: 14px;'>Use the <b>\"Upload Portfolio Ledger CSV File\"</b> browser tool on the left to inject active customer records.</p>"
+        "</div>"
+    )
+    st.markdown(body=placeholder_html, unsafe_html=True)
     st.stop()
 
-# Cache parsed user uploaded byte buffers safely in system memory indices
 @st.cache_data
 def parse_uploaded_ledger(file_buffer):
     try:
@@ -83,7 +82,6 @@ omni_search_box = st.sidebar.text_input(
     placeholder="Type profile name, UCIC ID, or loan registry file number...",
 ).strip()
 
-# Apply Dynamic Filters
 base_df = (
     portfolio_df
     if product_dropdown == "[ SHOW ALL PRODUCTS ]"
@@ -100,11 +98,9 @@ if omni_search_box:
 # ==============================================================================
 # DASHBOARD OUTPUT DISPLAY
 # ==============================================================================
-# Call Engine Logic to render template KPI headers layout components
 metrics_html = engine.render_metrics_board_html(base_df, product_dropdown)
-st.markdown(metrics_html, unsafe_html=True)
+st.markdown(body=metrics_html, unsafe_html=True)
 
-# Datagrid Panel
 cols = [
     "UCIC",
     "LAN_PDT",
@@ -121,7 +117,6 @@ available_cols = [c for c in cols if c in base_df.columns]
 st.subheader("📋 Workspace Active Data Ledger Rows")
 st.dataframe(base_df[available_cols], use_container_width=True, hide_index=True)
 
-# Split Layout Panel (Audits and Visual Plots Side-by-Side)
 left_panel, right_panel = st.columns()
 
 with left_panel:
@@ -149,16 +144,14 @@ with left_panel:
                     f"❌ Error: Account key '{target_id}' does not exist inside system memory indices."
                 )
             else:
-                # Use a specific index slice operation safely
                 row_slice = record.iloc[0].to_dict()
                 inspector_html = engine.render_audit_inspector_html(target_id, row_slice)
-                st.markdown(inspector_html, unsafe_html=True)
+                st.markdown(body=inspector_html, unsafe_html=True)
 
 with right_panel:
     st.markdown("### 📊 Reconciled Capital Exposure Share Frame")
     if base_df.empty:
         st.info("⚠️ No data available for selected filters to plot chart analysis.")
     else:
-        # Render clean native Plotly chart tracking calculations
         chart_figure = engine.generate_exposure_plotly(base_df, product_dropdown)
         st.plotly_chart(chart_figure, use_container_width=True)
