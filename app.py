@@ -71,7 +71,6 @@ if run_diagnostics:
     st.sidebar.info("⏳ Running engine validations...")
     try:
         import pytest
-        # Run pytest inside the active workspace environment
         exit_code = pytest.main(["-q", "--tb=short", "test_engine.py"])
         
         if exit_code == 0:
@@ -159,13 +158,9 @@ with left_panel:
                 st.write(f"**NPA Status Code:** {row_slice.get('NPA_TYPE', '')}")
                 st.write(f"**Account Writeoff Status:** {row_slice.get('WRITEOFF_TAG', '')}")
                 
-                # ==============================================================================
-                # REPORTLAB PDF GENERATION DOWNLOAD STREAM INTERFACE
-                # ==============================================================================
                 st.markdown("---")
                 st.markdown("##### 📥 Export Official Records")
                 
-                # Invoke the reportlab rendering builder from engine.py
                 pdf_payload = engine.generate_audit_pdf(target_id, row_slice)
                 
                 st.download_button(
