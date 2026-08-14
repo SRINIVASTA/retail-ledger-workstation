@@ -152,10 +152,10 @@ with left_panel:
                 )
             else:
                 row_slice = record.iloc[0].to_dict()
-                
+
                 # Render clean layout values natively instead of risky raw HTML parsing templates
                 st.subheader(f"🛡️ Audit Inspector Panel: {target_id}")
-                
+
                 st.markdown("##### 🏷️ Sourcing & Identification Parameters")
                 st.write(f"**Product Group (LAN_PDT):** {row_slice.get('LAN_PDT', '')}")
                 st.write(f"**Module Category:** {row_slice.get('MODULE', '')}")
@@ -163,19 +163,19 @@ with left_panel:
                 st.write(f"**Loan Account No:** {row_slice.get('LOAN_NO', '')}")
                 st.write(f"**Original Disbursal Date:** {row_slice.get('DISB_DATE', '')}")
                 st.write(f"**Disbursed Principal:** ₹{int(row_slice.get('LAN_DISB_AMT', 0)):,}")
-                
+
                 st.markdown("##### 🏠 Collateral Asset Verification Parameters")
                 st.write(f"**Make / Restructuring:** {row_slice.get('MAKE', '')}")
                 st.write(f"**Asset Model / Segment:** {row_slice.get('MODEL', '')}")
                 st.write(f"**Registration Refs (REGDNUM):** {row_slice.get('REGDNUM', '')}")
                 st.write(f"**HL / LAP Flags:** {row_slice.get('HL_NONHL', '')} | {row_slice.get('LAP_NONLAP', '')}")
-                
+
                 st.markdown("##### 💳 Monthly Billing & Active Balances")
                 st.write(f"**Gateway Presentation Mode:** {row_slice.get('REPAY_MODE', '')}")
                 st.write(f"**Loan Scheduled EMI:** ₹{int(row_slice.get('LOAN_EMI', 0)):,}")
                 st.write(f"**Principal Bal (LAN_POS):** ₹{int(row_slice.get('LAN_POS', 0)):,}")
                 st.write(f"**Total Exposure POS Risk:** ₹{int(row_slice.get('EXPOSURE_POS', 0)):,}")
-                
+
                 st.markdown("##### 🚨 Delinquency Buckets & Field Allocations")
                 st.error(f"**Days Past Due (LAN_DPD):** {row_slice.get('LAN_DPD', 0)} Days")
                 st.write(f"**Risk Bucket:** Bucket {row_slice.get('LAN_BKT', 0)}")
@@ -185,6 +185,13 @@ with left_panel:
                 st.write(f"**Field Action Response Code:** {row_slice.get('RESPONSE_CODE_NEW', '')}")
                 st.write(f"**NPA Status Code:** {row_slice.get('NPA_TYPE', '')}")
                 st.write(f"**Account Writeoff Status:** {row_slice.get('WRITEOFF_TAG', '')}")
+
+    # ==========================================================================
+    # PLOTLY FUNNEL RENDERER (Appears underneath the search form layout section)
+    # ==========================================================================
+    st.markdown("---")
+    funnel_fig = engine.generate_delinquency_funnel(base_df, product_dropdown)
+    st.plotly_chart(funnel_fig, use_container_width=True)
 
 with right_panel:
     st.markdown("### 📊 Reconciled Capital Exposure Share Frame")
