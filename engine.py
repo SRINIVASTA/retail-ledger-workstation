@@ -3,6 +3,9 @@ import plotly.express as px
 
 def compute_bucket_counts(df: pd.DataFrame) -> dict:
     """Calculates row counts across all 5 delinquency stages safely."""
+    if df.empty:
+        return {"b0": 0, "b1": 0, "b2": 0, "b3": 0, "b4": 0}
+        
     bkt_series = df["LAN_BKT"].astype(str).str.strip()
     return {
         "b0": len(df[bkt_series == "0"]),
