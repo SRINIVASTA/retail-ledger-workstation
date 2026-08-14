@@ -56,7 +56,7 @@ if omni_search_box:
     ]
 
 # ==============================================================================
-# SIDEBAR DIAGNOSTICS CONTROL PANEL
+# SIDEBAR DIAGNOSTICS CONTROL PANEL (Fixed Toggle Engine)
 # ==============================================================================
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🛠️ Step 3: System Verification")
@@ -71,7 +71,7 @@ if run_diagnostics:
     st.sidebar.info("⏳ Running engine validations...")
     try:
         import pytest
-        # Invoke pytest headlessly pointing directly to the test script file
+        # Run pytest inside the active workspace environment
         exit_code = pytest.main(["-q", "--tb=short", "test_engine.py"])
         
         if exit_code == 0:
@@ -82,6 +82,9 @@ if run_diagnostics:
             st.sidebar.warning("Please review your engine.py variables or spreadsheet column structures.")
     except Exception as e:
         st.sidebar.error(f"Execution Error: Missing testing dependencies in requirements.txt. Details: {e}")
+else:
+    # This guarantees that when unticked, nothing prints to the screen panel
+    st.sidebar.caption("💤 Diagnostics system idle. Check the box above to verify asset logic pools.")
 
 # ==============================================================================
 # MAIN DASHBOARD METRICS DISPLAY
@@ -121,7 +124,7 @@ with left_panel:
             if record.empty: 
                 st.error(f"❌ Error: Account key '{target_id}' does not exist.")
             else:
-                row_slice = record.iloc[0].to_dict()
+                row_slice = record.iloc.to_dict()
                 
                 st.subheader(f"🛡️ Audit Inspector Panel: {target_id}")
                 
