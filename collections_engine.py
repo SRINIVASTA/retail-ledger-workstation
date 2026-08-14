@@ -18,7 +18,7 @@ class BucketPlaybook:
 class LoanCollectionsReportEngine:
     """
     Evaluates loan delinquency metrics and generates point-of-collection 
-    behavioral playbooks and operational nudges.
+    behavioral playbooks and operational audit metadata.
     """
 
     @classmethod
@@ -28,6 +28,7 @@ class LoanCollectionsReportEngine:
         Returns: (bucket_code, risk_classification, action_playbook)
         """
         try:
+            # Capture float values (e.g., 3.0) or string representations (e.g., "3") Safely
             bucket_val = int(float(row_slice.get('LAN_BKT', 0)))
         except (ValueError, TypeError):
             bucket_val = 0
