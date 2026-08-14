@@ -107,108 +107,116 @@ st.dataframe(base_df[available_cols], use_container_width=True, hide_index=True)
 # ==============================================================================
 # SPLIT LAYOUT PANEL (AUDIT INSPECTOR & PLOTLY VISUALIZATIONS)
 # ==============================================================================
-import collections_engine  # Ensure collections_engine.py is in the same folder!
+import collections_engine  # Ensure collections_engine.py is in your root folder!
 
 left_panel, right_panel = st.columns(2)
 
 with left_panel:
     st.markdown("### 🔍 108-Header Cross-Product Audit Inspector")
-    with st.form("audit_form"):
-        audit_input_box = st.text_input("Audit Variable (Input UCIC Key):", placeholder="Type or copy a UCIC key...").strip()
-        submit_audit = st.form_submit_button("Inspect Complete 108 Headers Map", type="primary")
+    
+    # 1. Filter out data based on selected category (e.g., PERSONAL_LOAN)
+    filtered_df = portfolio_df[portfolio_df["PRODUCT_CATEGORY"] == "PERSONAL_LOAN"] if "PRODUCT_CATEGORY" in portfolio_df.columns else portfolio_df
+    
+    # 2. Prevent breaks if file isn't parsed yet
+    if filtered_df.empty:
+        st.info("📂 Please complete Step 1: Upload Portfolio Ledger CSV file above.")
+    else:
+        # 3. Pull actual UCIC keys from data matrix for easy collection selection
+        available_ucics = sorted(filtered_df["UCIC"].dropna().unique().tolist())
+        
+        # 4. Use standard interactive selectbox instead of restrictive text input form
+        target_id = st.selectbox(
+            "Select Active Customer UCIC Key to Inspect:", 
+            options=available_ucics,
+            help="Dynamically loaded from loan_master_portfolio_5_buckets.csv"
+        )
 
-    if submit_audit:
-        if not audit_input_box: 
-            st.warning("⚠️ Error: Please type an active Customer UCIC code first.")
-        else:
-            target_id = audit_input_box.upper()
-            record = portfolio_df[portfolio_df["UCIC"].str.upper() == target_id]
-            if record.empty: 
-                st.error(f"❌ Error: Account key '{target_id}' does not exist.")
-            else:
-                row_slice = record.iloc[0].to_dict()
-                
-                # --- FIXING DATA TYPE SANITIZATION FOR STREAMLIT ---
-                # Force clean conversion to prevent float/string checking failures
-                try:
-                    raw_bkt = row_slice.get('LAN_BKT', 0)
-                    row_slice['LAN_BKT'] = int(float(raw_bkt)) if raw_bkt not in [None, ''] else 0
-                except (ValueError, TypeError):
-                    row_slice['LAN_BKT'] = 0
-                
-                st.subheader(f"🛡️ Audit Inspector Panel: {target_id}")
-                
-                # --------------------------------------------------------------
-                # DYNAMIC 0-4 COLLECTION BUCKET BEHAVIOR ENGINE INJECTION
-                # --------------------------------------------------------------
-                playbook = collections_engine.LoanCollectionsEngine.get_playbook(row_slice)
-                
-                st.markdown(
-                    f"""
-                    <div style="background-color: {playbook.ui_color}12; 
-                                padding: 15px; 
-                                border-left: 6px solid {playbook.ui_color}; 
-                                border-radius: 4px; 
-                                margin-top: 5px;
-                                margin-bottom: 20px;">
-                        <h4 style="margin: 0; color: {playbook.ui_color}; font-size: 16px; font-weight: 700;">
-                            [{playbook.tag_name}] — {playbook.stage_name}
-                        </h4>
-                        <p style="margin: 4px 0 0 0; font-size: 13.5px; color: #111111;">
-                            {playbook.message}
-                        </p>
-                        <p style="margin: 6px 0 0 0; font-size: 13px; font-weight: 600; color: #333333;">
-                            👉 <strong>Playbook Strategy Action:</strong> {playbook.strategy_action}
-                        </p>
-                    </div>
-                    """, 
-                    unsafe_html=True
-                )
-                # --------------------------------------------------------------
-                
-                st.markdown("##### 🏷️ Sourcing & Identification Parameters")
-                st.write(f"**Product Group (LAN_PDT):** {row_slice.get('LAN_PDT', '')}")
-                st.write(f"**Module Category:** {row_slice.get('MODULE', '')}")
-                st.write(f"**Customer Name:** {row_slice.get('CUSTOMERNAME', '')}")
-                st.write(f"**Loan Account No:** {row_slice.get('LOAN_NO', '')}")
-                st.write(f"**Original Disbursal Date:** {row_slice.get('DISB_DATE', '')}")
-                st.write(f"**Disbursed Principal:** ₹{int(float(row_slice.get('LAN_DISB_AMT', 0))):,}")
-                
-                st.markdown("##### 🏠 Collateral Asset Verification Parameters")
-                st.write(f"**Make / Restructuring:** {row_slice.get('MAKE', '')}")
-                st.write(f"**Asset Model / Segment:** {row_slice.get('MODEL', '')}")
-                st.write(f"**Registration Refs (REGDNUM):** {row_slice.get('REGDNUM', '')}")
-                st.write(f"**HL / LAP Flags:** {row_slice.get('HL_NONHL', '')} | {row_slice.get('LAP_NONLAP', '')}")
-                
-                st.markdown("##### 💳 Monthly Billing & Active Balances")
-                st.write(f"**Gateway Presentation Mode:** {row_slice.get('REPAY_MODE', '')}")
-                st.write(f"**Loan Scheduled EMI:** ₹{int(float(row_slice.get('LOAN_EMI', 0))):,}")
-                st.write(f"**Principal Bal (LAN_POS):** ₹{int(float(row_slice.get('LAN_POS', 0))):,}")
-                st.write(f"**Total Exposure POS Risk:** ₹{int(float(row_slice.get('EXPOSURE_POS', 0))):,}")
-                
-                st.markdown("##### 🚨 Delinquency Buckets & Field Allocations")
-                st.error(f"**Days Past Due (LAN_DPD):** {row_slice.get('LAN_DPD', 0)} Days")
-                st.write(f"**Risk Bucket:** Bucket {row_slice.get('LAN_BKT', 0)}")
-                st.write(f"**Total Overdue Principal:** ₹{int(float(row_slice.get('LAN_INST_OV_AMT', 0))):,}")
-                st.write(f"**Late Presentation Fees:** ₹{int(float(row_slice.get('OVERDUE_CHARGE', 0))):,}")
-                st.write(f"**Assigned Agency ID Desk:** {row_slice.get('FINAL_ALLO_ID', '')}")
-                st.write(f"**Field Action Response Code:** {row_slice.get('RESPONSE_CODE_NEW', '')}")
-                st.write(f"**NPA Status Code:** {row_slice.get('NPA_TYPE', '')}")
-                st.write(f"**Account Writeoff Status:** {row_slice.get('WRITEOFF_TAG', '')}")
-                
-                st.markdown("---")
-                st.markdown("##### 📥 Export Official Records")
-                
-                pdf_payload = engine.generate_audit_pdf(target_id, row_slice)
-                
-                st.download_button(
-                    label="Download Executive PDF Audit Report",
-                    data=pdf_payload,
-                    file_name=f"Audit_Report_{target_id}.pdf",
-                    mime="application/pdf",
-                    type="primary",
-                    use_container_width=True
-                )
+        if target_id:
+            record = filtered_df[filtered_df["UCIC"] == target_id]
+            row_slice = record.iloc[0].to_dict()
+            
+            st.subheader(f"🛡️ Audit Inspector Panel: {target_id}")
+            
+            # --------------------------------------------------------------
+            # FAIL-SAFE TYPE CONVERSION FOR BUCKETS 0 TO 4
+            # --------------------------------------------------------------
+            try:
+                # Capture possible float values (e.g., 3.0) or string representations (e.g., "3")
+                raw_bkt = row_slice.get('LAN_BKT', 0)
+                row_slice['LAN_BKT'] = int(float(raw_bkt)) if raw_bkt not in [None, ''] else 0
+            except (ValueError, TypeError):
+                row_slice['LAN_BKT'] = 0
+            
+            # Fetch behavioral strategies based on calculated index row
+            playbook = collections_engine.LoanCollectionsEngine.get_playbook(row_slice)
+            
+            # Render strategic banner update inside workstation
+            st.markdown(
+                f"""
+                <div style="background-color: {playbook.ui_color}12; 
+                            padding: 15px; 
+                            border-left: 6px solid {playbook.ui_color}; 
+                            border-radius: 4px; 
+                            margin-top: 5px;
+                            margin-bottom: 20px;">
+                    <h4 style="margin: 0; color: {playbook.ui_color}; font-size: 15px; font-weight: 700;">
+                        [{playbook.tag_name}] — {playbook.stage_name}
+                    </h4>
+                    <p style="margin: 4px 0 0 0; font-size: 13px; color: #111111;">
+                        {playbook.message}
+                    </p>
+                    <p style="margin: 6px 0 0 0; font-size: 12.5px; font-weight: 600; color: #222222;">
+                        👉 <strong>Playbook Strategy Action:</strong> {playbook.strategy_action}
+                    </p>
+                </div>
+                """, 
+                unsafe_html=True
+            )
+            # --------------------------------------------------------------
+            
+            st.markdown("##### 🏷️ Sourcing & Identification Parameters")
+            st.write(f"**Product Group (LAN_PDT):** {row_slice.get('LAN_PDT', '')}")
+            st.write(f"**Module Category:** {row_slice.get('MODULE', '')}")
+            st.write(f"**Customer Name:** {row_slice.get('CUSTOMERNAME', '')}")
+            st.write(f"**Loan Account No:** {row_slice.get('LOAN_NO', '')}")
+            st.write(f"**Original Disbursal Date:** {row_slice.get('DISB_DATE', '')}")
+            st.write(f"**Disbursed Principal:** ₹{int(float(row_slice.get('LAN_DISB_AMT', 0))):,}")
+            
+            st.markdown("##### 🏠 Collateral Asset Verification Parameters")
+            st.write(f"**Make / Restructuring:** {row_slice.get('MAKE', '')}")
+            st.write(f"**Asset Model / Segment:** {row_slice.get('MODEL', '')}")
+            st.write(f"**Registration Refs (REGDNUM):** {row_slice.get('REGDNUM', '')}")
+            st.write(f"**HL / LAP Flags:** {row_slice.get('HL_NONHL', '')} | {row_slice.get('LAP_NONLAP', '')}")
+            
+            st.markdown("##### 💳 Monthly Billing & Active Balances")
+            st.write(f"**Gateway Presentation Mode:** {row_slice.get('REPAY_MODE', '')}")
+            st.write(f"**Loan Scheduled EMI:** ₹{int(float(row_slice.get('LOAN_EMI', 0))):,}")
+            st.write(f"**Principal Bal (LAN_POS):** ₹{int(float(row_slice.get('LAN_POS', 0))):,}")
+            st.write(f"**Total Exposure POS Risk:** ₹{int(float(row_slice.get('EXPOSURE_POS', 0))):,}")
+            
+            st.markdown("##### 🚨 Delinquency Buckets & Field Allocations")
+            st.error(f"**Days Past Due (LAN_DPD):** {row_slice.get('LAN_DPD', 0)} Days")
+            st.write(f"**Risk Bucket:** Bucket {row_slice.get('LAN_BKT', 0)}")
+            st.write(f"**Total Overdue Principal:** ₹{int(float(row_slice.get('LAN_INST_OV_AMT', 0))):,}")
+            st.write(f"**Late Presentation Fees:** ₹{int(float(row_slice.get('OVERDUE_CHARGE', 0))):,}")
+            st.write(f"**Assigned Agency ID Desk:** {row_slice.get('FINAL_ALLO_ID', '')}")
+            st.write(f"**Field Action Response Code:** {row_slice.get('RESPONSE_CODE_NEW', '')}")
+            st.write(f"**NPA Status Code:** {row_slice.get('NPA_TYPE', '')}")
+            st.write(f"**Account Writeoff Status:** {row_slice.get('WRITEOFF_TAG', '')}")
+            
+            st.markdown("---")
+            st.markdown("##### 📥 Export Official Records")
+            
+            pdf_payload = engine.generate_audit_pdf(target_id, row_slice)
+            
+            st.download_button(
+                label="Download Executive PDF Audit Report",
+                data=pdf_payload,
+                file_name=f"Audit_Report_{target_id}.pdf",
+                mime="application/pdf",
+                type="primary",
+                use_container_width=True
+            )
 
 with right_panel:
     st.markdown("### 📊 Reconciled Capital Exposure Share Frame")
