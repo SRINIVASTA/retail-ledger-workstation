@@ -1,5 +1,5 @@
-import matplotlib.pyplot as plt
 import pandas as pd
+import plotly.express as px
 
 
 def compute_bucket_counts(df: pd.DataFrame) -> dict:
@@ -86,14 +86,11 @@ def render_audit_inspector_html(target_id: str, row_dict: dict) -> str:
     """
 
 
-def generate_exposure_pie(df: pd.DataFrame, product_selection: str):
-    """Assembles the tailored Matplotlib exposure donut chart configuration."""
-    plt.rcParams["font.family"] = "DejaVu Sans"
-    fig, ax = plt.subplots(figsize=(6.5, 5), facecolor="white")
-
+def generate_exposure_plotly(df: pd.DataFrame, product_selection: str):
+    """Assembles an interactive Plotly donut chart configuration."""
     if product_selection == "[ SHOW ALL PRODUCTS ]":
         summary = df.groupby("LAN_PDT")["EXPOSURE_POS"].sum().reset_index()
-        palette = {
+        color_map = {
             "PERSONAL_LOAN": "#2980b9",
             "CREDIT_CARD": "#8e44ad",
             "VEHICLE_LOAN": "#27ae60",
@@ -101,39 +98,52 @@ def generate_exposure_pie(df: pd.DataFrame, product_selection: str):
             "GOLD_LOAN": "#f1c40f",
             "LAP": "#16a085",
         }
-        colors = [palette.get(x, "#2c3e50") for x in summary["LAN_PDT"]]
-        labels = [
-            f"{row['LAN_PDT']}\n(₹{int(row['EXPOSURE_POS']):,})"
-            for _, row in summary.iterrows()
-        ]
-        title = "Total Active Capital Exposure Share Breakdown\n(Cross-Product Overview)"
+        names_col = "LAN_PDT"
+        title = "Total Active Capital Exposure Share (Cross-Product Overview)"
     else:
         summary = df.groupby("LAN_BKT")["EXPOSURE_POS"].sum().reset_index()
         summary["BKT_NAME"] = "Bucket " + summary["LAN_BKT"].astype(str)
-        palette = {
+        color_map = {
             "Bucket 0": "#27ae60",
             "Bucket 1": "#f1c40f",
             "Bucket 2": "#e67e22",
             "Bucket 3": "#d35400",
             "Bucket 4": "#c0392b",
+            "Bucket None": "#7f8c8d",
         }
-        colors = [palette.get(x, "#7f8c8d") for x in summary["BKT_NAME"]]
-        labels = [
-            f"{row['BKT_NAME']}\n(₹{int(row['EXPOSURE_POS']):,})"
-            for _, row in summary.iterrows()
-        ]
-        title = f"Full 5-Stage Capital Exposure Share Distribution\n{product_selection}"
+        names_col = "BKT_NAME"
+        title = f"Full 5-Stage Capital Exposure Share Distribution — {product_selection}"
 
-    ax.pie(
-        summary["EXPOSURE_POS"],
-        labels=labels,
-        colors=colors,
-        autopct="%1.1f%%",
-        startangle=140,
-        pctdistance=0.75,
-        textprops={"fontsize": 8, "fontweight": "bold"},
-        wedgeprops=dict(width=0.4, edgecolor="white", linewidth=1.5),
+    # Build interactive donut chart using Plotly Express
+    fig = px.pie(
+        summary,
+        values="EXPOSURE_POS",
+        names=names_col,
+        color=names_col,
+        color_discrete_map=color_map,
+        hole=0.4,
     )
-    ax.set_title(title, fontsize=10, fontweight="bold", color="#2c3e50")
-    plt.tight_layout()
+
+    # Clean up layout text markers and typography styles
+    fig.update_traces(
+        textinfo="percent+label",
+        textposition="outside",
+        hovertemplate="<b>%{label}</b><br>Capital Exposure: ₹%{value:,.0f}<br>Percentage: %{percent}",
+    )
+
+    fig.update_layout(
+        title={
+            "text": f"<b>{title}</b>",
+            "y": 0.95,
+            "x": 0.5,
+            "xanchor": "center",
+            "yanchor": "top",
+            "font": {"size": 13, "color": "#2c3e50"},
+        },
+        showlegend=False,
+        margin=dict(t=60, b=20, l=20, r=20),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+    )
+
     return fig
