@@ -108,7 +108,9 @@ st.dataframe(base_df[available_cols], use_container_width=True, hide_index=True)
 # SPLIT LAYOUT PANEL (AUDIT INSPECTOR & PLOTLY VISUALIZATIONS)
 # ==============================================================================
 import collections_engine  # Ensure collections_engine.py is in your root folder!
-
+# ==============================================================================
+# SPLIT LAYOUT PANEL (AUDIT INSPECTOR & PLOTLY VISUALIZATIONS)
+# ==============================================================================
 left_panel, right_panel = st.columns(2)
 
 with left_panel:
@@ -124,7 +126,7 @@ with left_panel:
         # 3. Pull actual UCIC keys from data matrix for easy collection selection
         available_ucics = sorted(filtered_df["UCIC"].dropna().unique().tolist())
         
-        # 4. Use standard interactive selectbox instead of restrictive text input form
+        # 4. Interactive selection
         target_id = st.selectbox(
             "Select Active Customer UCIC Key to Inspect:", 
             options=available_ucics,
@@ -138,26 +140,58 @@ with left_panel:
             st.subheader(f"🛡️ Audit Inspector Panel: {target_id}")
             
             # --------------------------------------------------------------
-            # FAIL-SAFE TYPE CONVERSION FOR BUCKETS 0 TO 4
+            # INLINE 0-4 COLLECTION BUCKET LOGIC (Bypasses Cache Bugs)
             # --------------------------------------------------------------
             try:
-                # Capture possible float values (e.g., 3.0) or string representations (e.g., "3")
-                raw_bkt = row_slice.get('LAN_BKT', 0)
-                row_slice['LAN_BKT'] = int(float(raw_bkt)) if raw_bkt not in [None, ''] else 0
+                bucket_val = int(float(row_slice.get('LAN_BKT', 0)))
             except (ValueError, TypeError):
-                row_slice['LAN_BKT'] = 0
-            
-            # Fetch behavioral strategies dictionary safely
-            playbook = collections_engine.LoanCollectionsEngine.get_playbook(row_slice)
-            
-            # Safely stringify variables during dictionary retrieval
-            ui_color = str(playbook.get("ui_color", "#333333"))
-            tag_name = str(playbook.get("tag_name", "UNKNOWN"))
-            stage_name = str(playbook.get("stage_name", "Unknown Stage"))
-            message = str(playbook.get("message", ""))
-            strategy_action = str(playbook.get("strategy_action", ""))
+                bucket_val = 0
 
-            # Render strategic banner update inside workstation without compilation errors
+            # Define configuration dictionaries cleanly inside app.py
+            if bucket_val == 0:
+                playbook = {
+                    "ui_color": "#2E7D32", "tag_name": "GROWTH",
+                    "stage_name": "Bucket 0: Fully Performing Asset",
+                    "message": "🟢 This loan is completely current. Account behavior is healthy.",
+                    "strategy_action": "Account is safe. High priority candidate for pre-approved multi-product top-ups, gold loans, or interest rate drops."
+                }
+            elif bucket_val == 1:
+                playbook = {
+                    "ui_color": "#1976D2", "tag_name": "SOFT NUDGE",
+                    "stage_name": "Bucket 1: Early Delinquency (SMA-0)",
+                    "message": "🔵 Missed current cycle billing installment. 1-30 Days Past Due.",
+                    "strategy_action": "Send automated digital nudges (WhatsApp/SMS links). Trigger soft IVR voice drops. Likely a payroll cycle mismatch."
+                }
+            elif bucket_val == 2:
+                playbook = {
+                    "ui_color": "#EF6C00", "tag_name": "INTENSE CALLING",
+                    "stage_name": "Bucket 2: Early Stress Delinquency (SMA-1)",
+                    "message": "🟠 Consecutive second cycle bouncing. 31-60 Days Past Due.",
+                    "strategy_action": "Route file to live outbound tele-calling desks. Lock in a formal Promise-to-Pay (PTP) date with follow-up confirmation."
+                }
+            elif bucket_val == 3:
+                playbook = {
+                    "ui_color": "#C62828", "tag_name": "FIELD DEPLOYMENT",
+                    "stage_name": "Bucket 3: Severe Delinquency (SMA-2)",
+                    "message": "🔴 Pre-NPA Warning Threshold. 61-90 Days Past Due.",
+                    "strategy_action": "Deploy designated area field agents for a direct doorstep visit. Initiate financial restructuring or loan-term extension talks."
+                }
+            else:
+                playbook = {
+                    "ui_color": "#B71C1C", "tag_name": "LEGAL RECOVERY",
+                    "stage_name": "Bucket 4: Non-Performing Asset (NPA / Default)",
+                    "message": "💀 Permanent Impairment. Over 90 Days Past Due.",
+                    "strategy_action": "Freeze credit limits across all connected products. Issue formal legal notices, pull collateral records, or clear for repo settlement."
+                }
+            
+            # Explicitly force clean string formatting to prevent any markdown component errors
+            ui_color = str(playbook["ui_color"])
+            tag_name = str(playbook["tag_name"])
+            stage_name = str(playbook["stage_name"])
+            message = str(playbook["message"])
+            strategy_action = str(playbook["strategy_action"])
+
+            # Render HTML layout banner smoothly
             st.markdown(
                 f"""
                 <div style="background-color: {ui_color}12; 
@@ -187,8 +221,14 @@ with left_panel:
             st.write(f"**Customer Name:** {row_slice.get('CUSTOMERNAME', '')}")
             st.write(f"**Loan Account No:** {row_slice.get('LOAN_NO', '')}")
             st.write(f"**Original Disbursal Date:** {row_slice.get('DISB_DATE', '')}")
-            st.write(f"**Disbursed Principal:** ₹{int(float(row_slice.get('LAN_DISB_AMT', 0))):,}")
             
+            # Force numeric conversion for output fields to prevent string format errors
+            try:
+                disb_amt = int(float(row_slice.get('LAN_DISB_AMT', 0)))
+                st.write(f"**Disbursed Principal:** ₹{disb_amt:,}")
+            except:
+                st.write(f"**Disbursed Principal:** ₹{row_slice.get('LAN_DISB_AMT', 0)}")
+                
             st.markdown("##### 🏠 Collateral Asset Verification Parameters")
             st.write(f"**Make / Restructuring:** {row_slice.get('MAKE', '')}")
             st.write(f"**Asset Model / Segment:** {row_slice.get('MODEL', '')}")
@@ -197,15 +237,27 @@ with left_panel:
             
             st.markdown("##### 💳 Monthly Billing & Active Balances")
             st.write(f"**Gateway Presentation Mode:** {row_slice.get('REPAY_MODE', '')}")
-            st.write(f"**Loan Scheduled EMI:** ₹{int(float(row_slice.get('LOAN_EMI', 0))):,}")
-            st.write(f"**Principal Bal (LAN_POS):** ₹{int(float(row_slice.get('LAN_POS', 0))):,}")
-            st.write(f"**Total Exposure POS Risk:** ₹{int(float(row_slice.get('EXPOSURE_POS', 0))):,}")
             
+            try:
+                st.write(f"**Loan Scheduled EMI:** ₹{int(float(row_slice.get('LOAN_EMI', 0))):,}")
+                st.write(f"**Principal Bal (LAN_POS):** ₹{int(float(row_slice.get('LAN_POS', 0))):,}")
+                st.write(f"**Total Exposure POS Risk:** ₹{int(float(row_slice.get('EXPOSURE_POS', 0))):,}")
+            except:
+                st.write(f"**Loan Scheduled EMI:** ₹{row_slice.get('LOAN_EMI', 0)}")
+                st.write(f"**Principal Bal (LAN_POS):** ₹{row_slice.get('LAN_POS', 0)}")
+                st.write(f"**Total Exposure POS Risk:** ₹{row_slice.get('EXPOSURE_POS', 0)}")
+                
             st.markdown("##### 🚨 Delinquency Buckets & Field Allocations")
             st.error(f"**Days Past Due (LAN_DPD):** {row_slice.get('LAN_DPD', 0)} Days")
             st.write(f"**Risk Bucket:** Bucket {row_slice.get('LAN_BKT', 0)}")
-            st.write(f"**Total Overdue Principal:** ₹{int(float(row_slice.get('LAN_INST_OV_AMT', 0))):,}")
-            st.write(f"**Late Presentation Fees:** ₹{int(float(row_slice.get('OVERDUE_CHARGE', 0))):,}")
+            
+            try:
+                st.write(f"**Total Overdue Principal:** ₹{int(float(row_slice.get('LAN_INST_OV_AMT', 0))):,}")
+                st.write(f"**Late Presentation Fees:** ₹{int(float(row_slice.get('OVERDUE_CHARGE', 0))):,}")
+            except:
+                st.write(f"**Total Overdue Principal:** ₹{row_slice.get('LAN_INST_OV_AMT', 0)}")
+                st.write(f"**Late Presentation Fees:** ₹{row_slice.get('OVERDUE_CHARGE', 0)}")
+                
             st.write(f"**Assigned Agency ID Desk:** {row_slice.get('FINAL_ALLO_ID', '')}")
             st.write(f"**Field Action Response Code:** {row_slice.get('RESPONSE_CODE_NEW', '')}")
             st.write(f"**NPA Status Code:** {row_slice.get('NPA_TYPE', '')}")
