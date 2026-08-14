@@ -1,7 +1,6 @@
 import pandas as pd
 import streamlit as st
 import engine
-import collections_engine  
 
 st.set_page_config(
     page_title="CreditPulse AI Workstation",
@@ -108,6 +107,8 @@ st.dataframe(base_df[available_cols], use_container_width=True, hide_index=True)
 # ==============================================================================
 # SPLIT LAYOUT PANEL (AUDIT INSPECTOR & PLOTLY VISUALIZATIONS)
 # ==============================================================================
+import collections_engine  # Ensure collections_engine.py is in the same folder!
+
 left_panel, right_panel = st.columns(2)
 
 with left_panel:
@@ -127,6 +128,14 @@ with left_panel:
             else:
                 row_slice = record.iloc[0].to_dict()
                 
+                # --- FIXING DATA TYPE SANITIZATION FOR STREAMLIT ---
+                # Force clean conversion to prevent float/string checking failures
+                try:
+                    raw_bkt = row_slice.get('LAN_BKT', 0)
+                    row_slice['LAN_BKT'] = int(float(raw_bkt)) if raw_bkt not in [None, ''] else 0
+                except (ValueError, TypeError):
+                    row_slice['LAN_BKT'] = 0
+                
                 st.subheader(f"🛡️ Audit Inspector Panel: {target_id}")
                 
                 # --------------------------------------------------------------
@@ -134,7 +143,6 @@ with left_panel:
                 # --------------------------------------------------------------
                 playbook = collections_engine.LoanCollectionsEngine.get_playbook(row_slice)
                 
-                # Custom visual styling block reflecting current collection risk tier
                 st.markdown(
                     f"""
                     <div style="background-color: {playbook.ui_color}12; 
@@ -164,7 +172,7 @@ with left_panel:
                 st.write(f"**Customer Name:** {row_slice.get('CUSTOMERNAME', '')}")
                 st.write(f"**Loan Account No:** {row_slice.get('LOAN_NO', '')}")
                 st.write(f"**Original Disbursal Date:** {row_slice.get('DISB_DATE', '')}")
-                st.write(f"**Disbursed Principal:** ₹{int(row_slice.get('LAN_DISB_AMT', 0)):,}")
+                st.write(f"**Disbursed Principal:** ₹{int(float(row_slice.get('LAN_DISB_AMT', 0))):,}")
                 
                 st.markdown("##### 🏠 Collateral Asset Verification Parameters")
                 st.write(f"**Make / Restructuring:** {row_slice.get('MAKE', '')}")
@@ -174,15 +182,15 @@ with left_panel:
                 
                 st.markdown("##### 💳 Monthly Billing & Active Balances")
                 st.write(f"**Gateway Presentation Mode:** {row_slice.get('REPAY_MODE', '')}")
-                st.write(f"**Loan Scheduled EMI:** ₹{int(row_slice.get('LOAN_EMI', 0)):,}")
-                st.write(f"**Principal Bal (LAN_POS):** ₹{int(row_slice.get('LAN_POS', 0)):,}")
-                st.write(f"**Total Exposure POS Risk:** ₹{int(row_slice.get('EXPOSURE_POS', 0)):,}")
+                st.write(f"**Loan Scheduled EMI:** ₹{int(float(row_slice.get('LOAN_EMI', 0))):,}")
+                st.write(f"**Principal Bal (LAN_POS):** ₹{int(float(row_slice.get('LAN_POS', 0))):,}")
+                st.write(f"**Total Exposure POS Risk:** ₹{int(float(row_slice.get('EXPOSURE_POS', 0))):,}")
                 
                 st.markdown("##### 🚨 Delinquency Buckets & Field Allocations")
                 st.error(f"**Days Past Due (LAN_DPD):** {row_slice.get('LAN_DPD', 0)} Days")
                 st.write(f"**Risk Bucket:** Bucket {row_slice.get('LAN_BKT', 0)}")
-                st.write(f"**Total Overdue Principal:** ₹{int(row_slice.get('LAN_INST_OV_AMT', 0)):,}")
-                st.write(f"**Late Presentation Fees:** ₹{int(row_slice.get('OVERDUE_CHARGE', 0)):,}")
+                st.write(f"**Total Overdue Principal:** ₹{int(float(row_slice.get('LAN_INST_OV_AMT', 0))):,}")
+                st.write(f"**Late Presentation Fees:** ₹{int(float(row_slice.get('OVERDUE_CHARGE', 0))):,}")
                 st.write(f"**Assigned Agency ID Desk:** {row_slice.get('FINAL_ALLO_ID', '')}")
                 st.write(f"**Field Action Response Code:** {row_slice.get('RESPONSE_CODE_NEW', '')}")
                 st.write(f"**NPA Status Code:** {row_slice.get('NPA_TYPE', '')}")
