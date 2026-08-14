@@ -1,6 +1,6 @@
 import pandas as pd
 import pytest
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 import engine
 
 @pytest.fixture
@@ -87,22 +87,22 @@ def test_render_audit_inspector_html():
     assert "₹50,000" in inspector_html
 
 
-def test_generate_exposure_pie_all_products(mock_portfolio_data):
-    """Confirms Matplotlib graph building routines correctly complete on 'ALL PRODUCTS' settings."""
-    fig = engine.generate_exposure_pie(mock_portfolio_data, "[ SHOW ALL PRODUCTS ]")
+def test_generate_exposure_plotly_all_products(mock_portfolio_data):
+    """Confirms Plotly graph building routines correctly complete on 'ALL PRODUCTS' settings."""
+    fig = engine.generate_exposure_plotly(mock_portfolio_data, "[ SHOW ALL PRODUCTS ]")
     
     assert fig is not None
-    assert isinstance(fig, plt.Figure)
-    assert len(fig.axes) > 0
-    plt.close(fig)  # Safe cleanup memory release
+    assert isinstance(fig, go.Figure)
+    # Check that labels generated are from the product line column
+    assert fig.data[0].labels[0] in mock_portfolio_data["LAN_PDT"].values
 
 
-def test_generate_exposure_pie_single_product(mock_portfolio_data):
-    """Confirms Matplotlib graph building routines correctly complete on focused single product categories."""
+def test_generate_exposure_plotly_single_product(mock_portfolio_data):
+    """Confirms Plotly graph building routines correctly complete on focused single product categories."""
     filtered_df = mock_portfolio_data[mock_portfolio_data["LAN_PDT"] == "PERSONAL_LOAN"]
-    fig = engine.generate_exposure_pie(filtered_df, "PERSONAL_LOAN")
+    fig = engine.generate_exposure_plotly(filtered_df, "PERSONAL_LOAN")
     
     assert fig is not None
-    assert isinstance(fig, plt.Figure)
-    assert len(fig.axes) > 0
-    plt.close(fig)
+    assert isinstance(fig, go.Figure)
+    # Check that labels generated contain the Bucket name structure
+    assert "Bucket" in fig.data[0].labels[0]
