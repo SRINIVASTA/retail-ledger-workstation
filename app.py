@@ -113,6 +113,7 @@ import collections_engine  # Ensure collections_engine.py is in your root folder
 # ==============================================================================
 # SPLIT LAYOUT PANEL (AUDIT INSPECTOR & PLOTLY VISUALIZATIONS)
 # ==============================================================================
+
 left_panel, right_panel = st.columns(2)
 
 with left_panel:
@@ -135,28 +136,28 @@ with left_panel:
             record = filtered_df[filtered_df["UCIC"] == target_id]
             
             if not record.empty:
-                row_slice = record.iloc.to_dict()
+                # Convert the individual dataframe row directly to a dict frame
+                row_slice = record.iloc[0].to_dict()
                 
                 st.subheader(f"🛡️ Audit Inspector Panel: {target_id}")
                 
                 # --------------------------------------------------------------
-                # EXECUTIVE REPORT HEADER GENERATION
+                # EXECUTIVE REPORT HEADER GENERATION (IMMUTABLE DISK LAYOUT)
                 # --------------------------------------------------------------
-                b_code, b_class, b_playbook, b_color = collections_report_engine.generate_audit_bucket_metadata(row_slice)
+                b_code, b_class, b_playbook = collections_report_engine.LoanCollectionsReportEngine.generate_audit_bucket_metadata(row_slice)
                 
-                # Clean, professional layout using native Streamlit text components
                 st.markdown("##### 🏛️ Risk Regulatory Status Report")
                 
-                # Render using structured data metrics for standard reporting layouts
+                # Clean, non-interactive audit counters
                 col_b1, col_b2 = st.columns(2)
                 col_b1.metric("Regulatory Bucket Code", b_code)
                 col_b2.metric("Portfolio Risk Tier", b_class)
                 
-                # Block for executive overview narrative
+                # Immutable operational directive field block
                 st.text_area(
                     label="Official Mandated Playbook Strategy Directive:",
                     value=b_playbook,
-                    height=90,
+                    height=100,
                     disabled=True,
                     help="Immutable policy directives governed by core risk compliance rule sets."
                 )
