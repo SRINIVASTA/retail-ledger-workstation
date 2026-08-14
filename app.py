@@ -56,7 +56,7 @@ if omni_search_box:
     ]
 
 # ==============================================================================
-# SIDEBAR DIAGNOSTICS CONTROL PANEL (Fixed Toggle Engine)
+# SIDEBAR DIAGNOSTICS CONTROL PANEL 
 # ==============================================================================
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🛠️ Step 3: System Verification")
@@ -83,7 +83,6 @@ if run_diagnostics:
     except Exception as e:
         st.sidebar.error(f"Execution Error: Missing testing dependencies in requirements.txt. Details: {e}")
 else:
-    # This guarantees that when unticked, nothing prints to the screen panel
     st.sidebar.caption("💤 Diagnostics system idle. Check the box above to verify asset logic pools.")
 
 # ==============================================================================
@@ -106,7 +105,9 @@ available_cols = [c for c in cols if c in base_df.columns]
 st.subheader("📋 Workspace Active Data Ledger Rows")
 st.dataframe(base_df[available_cols], use_container_width=True, hide_index=True)
 
-# Split Layout Panel (Audit and Plotly Side-by-Side)
+# ==============================================================================
+# SPLIT LAYOUT PANEL (AUDIT INSPECTOR & PLOTLY VISUALIZATIONS)
+# ==============================================================================
 left_panel, right_panel = st.columns(2)
 
 with left_panel:
@@ -157,6 +158,24 @@ with left_panel:
                 st.write(f"**Field Action Response Code:** {row_slice.get('RESPONSE_CODE_NEW', '')}")
                 st.write(f"**NPA Status Code:** {row_slice.get('NPA_TYPE', '')}")
                 st.write(f"**Account Writeoff Status:** {row_slice.get('WRITEOFF_TAG', '')}")
+                
+                # ==============================================================================
+                # REPORTLAB PDF GENERATION DOWNLOAD STREAM INTERFACE
+                # ==============================================================================
+                st.markdown("---")
+                st.markdown("##### 📥 Export Official Records")
+                
+                # Invoke the reportlab rendering builder from engine.py
+                pdf_payload = engine.generate_audit_pdf(target_id, row_slice)
+                
+                st.download_button(
+                    label="Download Executive PDF Audit Report",
+                    data=pdf_payload,
+                    file_name=f"Audit_Report_{target_id}.pdf",
+                    mime="application/pdf",
+                    type="primary",
+                    use_container_width=True
+                )
 
 with right_panel:
     st.markdown("### 📊 Reconciled Capital Exposure Share Frame")
