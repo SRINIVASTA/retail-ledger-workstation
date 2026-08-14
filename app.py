@@ -147,26 +147,33 @@ with left_panel:
             except (ValueError, TypeError):
                 row_slice['LAN_BKT'] = 0
             
-            # Fetch behavioral strategies based on calculated index row
+            # Fetch behavioral strategies dictionary safely
             playbook = collections_engine.LoanCollectionsEngine.get_playbook(row_slice)
             
-            # Render strategic banner update inside workstation
+            # Safely stringify variables during dictionary retrieval
+            ui_color = str(playbook.get("ui_color", "#333333"))
+            tag_name = str(playbook.get("tag_name", "UNKNOWN"))
+            stage_name = str(playbook.get("stage_name", "Unknown Stage"))
+            message = str(playbook.get("message", ""))
+            strategy_action = str(playbook.get("strategy_action", ""))
+
+            # Render strategic banner update inside workstation without compilation errors
             st.markdown(
                 f"""
-                <div style="background-color: {playbook.ui_color}12; 
+                <div style="background-color: {ui_color}12; 
                             padding: 15px; 
-                            border-left: 6px solid {playbook.ui_color}; 
+                            border-left: 6px solid {ui_color}; 
                             border-radius: 4px; 
                             margin-top: 5px;
                             margin-bottom: 20px;">
-                    <h4 style="margin: 0; color: {playbook.ui_color}; font-size: 15px; font-weight: 700;">
-                        [{playbook.tag_name}] — {playbook.stage_name}
+                    <h4 style="margin: 0; color: {ui_color}; font-size: 15px; font-weight: 700;">
+                        [{tag_name}] — {stage_name}
                     </h4>
                     <p style="margin: 4px 0 0 0; font-size: 13px; color: #111111;">
-                        {playbook.message}
+                        {message}
                     </p>
                     <p style="margin: 6px 0 0 0; font-size: 12.5px; font-weight: 600; color: #222222;">
-                        👉 <strong>Playbook Strategy Action:</strong> {playbook.strategy_action}
+                        👉 <strong>Playbook Strategy Action:</strong> {strategy_action}
                     </p>
                 </div>
                 """, 
