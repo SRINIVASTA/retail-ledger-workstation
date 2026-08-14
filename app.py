@@ -140,7 +140,7 @@ with left_panel:
             record = filtered_df[filtered_df["UCIC"] == target_id]
             
             if not record.empty:
-                # FIXED: Added [0] row index locator before calling to_dict()
+                # FIXED: Extract index position 0 safely using pandas Series indexing before parsing to dictionary
                 row_slice = record.iloc[0].to_dict()
                 
                 st.subheader(f"🛡️ Audit Inspector Panel: {target_id}")
