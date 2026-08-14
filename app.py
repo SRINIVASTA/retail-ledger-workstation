@@ -11,43 +11,33 @@ st.set_page_config(
 )
 
 # ==============================================================================
-# PROD HEADER BANNER (Python 3.14 Bulletproof Fix)
+# NATIVE TITLE BANNER (Python 3.14 Compatible — No HTML)
 # ==============================================================================
-banner_html = (
-    "<div style='background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); "
-    "padding: 18px; text-align: center; border-radius: 6px; margin-bottom: 20px;'>"
-    "<h2 style='color: white; margin: 0; font-family: -apple-system,BlinkMacSystemFont,\"Segoe UI\"; "
-    "font-weight: 600; letter-spacing: 0.5px;'>📈 CREDITPULSE AI — MULTI-PRODUCT RETAIL LEDGER WORKSTATION</h2>"
-    "</div>"
-)
-# Passing body as an explicit named keyword parameter to satisfy Python 3.14 argument tracking
-st.markdown(body=banner_html, unsafe_html=True)
+st.title("📈 CREDITPULSE AI — MULTI-PRODUCT RETAIL LEDGER WORKSTATION")
+st.divider()
 
 # ==============================================================================
 # STREAMLIT NATIVE FILE UPLOADER CONTROL PANEL
 # ==============================================================================
 st.sidebar.title("Ledger Workspace Controls")
-
 st.sidebar.markdown("### 📂 Step 1: Data Injection")
+
+# File uploader box explicitly locking down format verification parameters
 uploaded_file = st.sidebar.file_uploader(
     "Upload Portfolio Ledger CSV File", 
     type=["csv"],
     help="Upload your credit portfolio file containing required operational ledger fields."
 )
 
+# Block dashboard presentation until user successfully drops a CSV dataset stream
 if uploaded_file is None:
     st.info("💡 **Welcome to CreditPulse AI!** To begin managing cross-product risk, please upload your portfolio ledger CSV file using the container panel in the sidebar.")
     
-    placeholder_html = (
-        "<div style='border: 1px dashed #d0d7de; padding: 40px; text-align: center; "
-        "border-radius: 6px; background-color: #f6f8fa; margin-top: 20px;'>"
-        "<h3 style='color: #57606a; margin: 0 0 8px 0;'>Workspace Ledger is currently empty</h3>"
-        "<p style='color: #57606a; margin: 0; font-size: 14px;'>Use the <b>\"Upload Portfolio Ledger CSV File\"</b> browser tool on the left to inject active customer records.</p>"
-        "</div>"
-    )
-    st.markdown(body=placeholder_html, unsafe_html=True)
+    # Native Streamlit components replace raw HTML layout placeholder blocks
+    st.warning("⚠️ Workspace Ledger is currently empty. Use the upload tool on the left side menu to inject customer portfolio records.")
     st.stop()
 
+# Cache parsed user uploaded byte buffers safely in system memory indices
 @st.cache_data
 def parse_uploaded_ledger(file_buffer):
     try:
@@ -82,6 +72,7 @@ omni_search_box = st.sidebar.text_input(
     placeholder="Type profile name, UCIC ID, or loan registry file number...",
 ).strip()
 
+# Apply Dynamic Filters
 base_df = (
     portfolio_df
     if product_dropdown == "[ SHOW ALL PRODUCTS ]"
@@ -96,11 +87,23 @@ if omni_search_box:
     ]
 
 # ==============================================================================
-# DASHBOARD OUTPUT DISPLAY
+# DASHBOARD OUTPUT DISPLAY (Native KPI Row Layout)
 # ==============================================================================
-metrics_html = engine.render_metrics_board_html(base_df, product_dropdown)
-st.markdown(body=metrics_html, unsafe_html=True)
+# Extract exact sub-metrics using decoupled functional computations
+counts = engine.compute_bucket_counts(base_df)
 
+kpi_col1, kpi_col2, kpi_col3, kpi_col4, kpi_col5, kpi_col6 = st.columns(6)
+kpi_col1.metric("📊 TOTAL FILTERED", f"{len(base_df)} Rows")
+kpi_col2.metric("🟢 BUCKET 0", f"{counts['b0']} Rows")
+kpi_col3.metric("🟡 BUCKET 1", f"{counts['b1']} Rows")
+kpi_col4.metric("🟠 BUCKET 2", f"{counts['b2']} Rows")
+kpi_col5.metric("🔴 BUCKET 3", f"{counts['b3']} Rows")
+kpi_col6.metric("☠️ BUCKET 4", f"{counts['b4']} Rows")
+
+# Sub-context information banner box
+st.success(f"**Workspace Ledger State:** Active Portfolio Profile Subsets — Filter: {product_dropdown}")
+
+# Datagrid Panel
 cols = [
     "UCIC",
     "LAN_PDT",
@@ -117,7 +120,8 @@ available_cols = [c for c in cols if c in base_df.columns]
 st.subheader("📋 Workspace Active Data Ledger Rows")
 st.dataframe(base_df[available_cols], use_container_width=True, hide_index=True)
 
-left_panel, right_panel = st.columns()
+# Split Layout Panel (Audits and Visual Plots Side-by-Side)
+left_panel, right_panel = st.columns(2)
 
 with left_panel:
     st.markdown("### 🔍 108-Header Cross-Product Audit Inspector")
@@ -145,13 +149,45 @@ with left_panel:
                 )
             else:
                 row_slice = record.iloc[0].to_dict()
-                inspector_html = engine.render_audit_inspector_html(target_id, row_slice)
-                st.markdown(body=inspector_html, unsafe_html=True)
+                
+                # Render clean layout values natively instead of risky raw HTML parsing templates
+                st.subheader(f"🛡️ Audit Inspector Panel: {target_id}")
+                
+                st.markdown("##### 🏷️ Sourcing & Identification Parameters")
+                st.write(f"**Product Group (LAN_PDT):** {row_slice.get('LAN_PDT', '')}")
+                st.write(f"**Module Category:** {row_slice.get('MODULE', '')}")
+                st.write(f"**Customer Name:** {row_slice.get('CUSTOMERNAME', '')}")
+                st.write(f"**Loan Account No:** {row_slice.get('LOAN_NO', '')}")
+                st.write(f"**Original Disbursal Date:** {row_slice.get('DISB_DATE', '')}")
+                st.write(f"**Disbursed Principal:** ₹{int(row_slice.get('LAN_DISB_AMT', 0)):,}")
+                
+                st.markdown("##### 🏠 Collateral Asset Verification Parameters")
+                st.write(f"**Make / Restructuring:** {row_slice.get('MAKE', '')}")
+                st.write(f"**Asset Model / Segment:** {row_slice.get('MODEL', '')}")
+                st.write(f"**Registration Refs (REGDNUM):** {row_slice.get('REGDNUM', '')}")
+                st.write(f"**HL / LAP Flags:** {row_slice.get('HL_NONHL', '')} | {row_slice.get('LAP_NONLAP', '')}")
+                
+                st.markdown("##### 💳 Monthly Billing & Active Balances")
+                st.write(f"**Gateway Presentation Mode:** {row_slice.get('REPAY_MODE', '')}")
+                st.write(f"**Loan Scheduled EMI:** ₹{int(row_slice.get('LOAN_EMI', 0)):,}")
+                st.write(f"**Principal Bal (LAN_POS):** ₹{int(row_slice.get('LAN_POS', 0)):,}")
+                st.write(f"**Total Exposure POS Risk:** ₹{int(row_slice.get('EXPOSURE_POS', 0)):,}")
+                
+                st.markdown("##### 🚨 Delinquency Buckets & Field Allocations")
+                st.error(f"**Days Past Due (LAN_DPD):** {row_slice.get('LAN_DPD', 0)} Days")
+                st.write(f"**Risk Bucket:** Bucket {row_slice.get('LAN_BKT', 0)}")
+                st.write(f"**Total Overdue Principal:** ₹{int(row_slice.get('LAN_INST_OV_AMT', 0)):,}")
+                st.write(f"**Late Presentation Fees:** ₹{int(row_slice.get('OVERDUE_CHARGE', 0)):,}")
+                st.write(f"**Assigned Agency ID Desk:** {row_slice.get('FINAL_ALLO_ID', '')}")
+                st.write(f"**Field Action Response Code:** {row_slice.get('RESPONSE_CODE_NEW', '')}")
+                st.write(f"**NPA Status Code:** {row_slice.get('NPA_TYPE', '')}")
+                st.write(f"**Account Writeoff Status:** {row_slice.get('WRITEOFF_TAG', '')}")
 
 with right_panel:
     st.markdown("### 📊 Reconciled Capital Exposure Share Frame")
     if base_df.empty:
         st.info("⚠️ No data available for selected filters to plot chart analysis.")
     else:
+        # Render clean native Plotly chart tracking calculations
         chart_figure = engine.generate_exposure_plotly(base_df, product_dropdown)
         st.plotly_chart(chart_figure, use_container_width=True)
