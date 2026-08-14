@@ -3,13 +3,15 @@ import plotly.express as px
 
 
 def compute_bucket_counts(df: pd.DataFrame) -> dict:
-    """Calculates row counts across all 5 delinquency stages."""
+    """Calculates row counts across all 5 delinquency stages safely."""
+    # Convert the column to string, strip spaces, and handle comparisons
+    bkt_series = df["LAN_BKT"].astype(str).str.strip()
     return {
-        "b0": len(df[df["LAN_BKT"] == 0]),
-        "b1": len(df[df["LAN_BKT"] == 1]),
-        "b2": len(df[df["LAN_BKT"] == 2]),
-        "b3": len(df[df["LAN_BKT"] == 3]),
-        "b4": len(df[df["LAN_BKT"] == 4]),
+        "b0": len(df[bkt_series == "0"]),
+        "b1": len(df[bkt_series == "1"]),
+        "b2": len(df[bkt_series == "2"]),
+        "b3": len(df[bkt_series == "3"]),
+        "b4": len(df[bkt_series == "4"]),
     }
 
 
