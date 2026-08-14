@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 import engine
+import collections_engine  
 
 st.set_page_config(
     page_title="CreditPulse AI Workstation",
@@ -127,6 +128,35 @@ with left_panel:
                 row_slice = record.iloc[0].to_dict()
                 
                 st.subheader(f"🛡️ Audit Inspector Panel: {target_id}")
+                
+                # --------------------------------------------------------------
+                # DYNAMIC 0-4 COLLECTION BUCKET BEHAVIOR ENGINE INJECTION
+                # --------------------------------------------------------------
+                playbook = collections_engine.LoanCollectionsEngine.get_playbook(row_slice)
+                
+                # Custom visual styling block reflecting current collection risk tier
+                st.markdown(
+                    f"""
+                    <div style="background-color: {playbook.ui_color}12; 
+                                padding: 15px; 
+                                border-left: 6px solid {playbook.ui_color}; 
+                                border-radius: 4px; 
+                                margin-top: 5px;
+                                margin-bottom: 20px;">
+                        <h4 style="margin: 0; color: {playbook.ui_color}; font-size: 16px; font-weight: 700;">
+                            [{playbook.tag_name}] — {playbook.stage_name}
+                        </h4>
+                        <p style="margin: 4px 0 0 0; font-size: 13.5px; color: #111111;">
+                            {playbook.message}
+                        </p>
+                        <p style="margin: 6px 0 0 0; font-size: 13px; font-weight: 600; color: #333333;">
+                            👉 <strong>Playbook Strategy Action:</strong> {playbook.strategy_action}
+                        </p>
+                    </div>
+                    """, 
+                    unsafe_html=True
+                )
+                # --------------------------------------------------------------
                 
                 st.markdown("##### 🏷️ Sourcing & Identification Parameters")
                 st.write(f"**Product Group (LAN_PDT):** {row_slice.get('LAN_PDT', '')}")
