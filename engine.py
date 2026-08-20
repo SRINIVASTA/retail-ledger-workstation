@@ -32,6 +32,90 @@ INTEREST_PROFILES = {
     "HOME_LOAN": 0.085, "LAP": 0.11, "GOLD_LOAN": 0.12
 }
 
+# ✅ COMPLETE PRODUCTION CONDITION MATRIX CONTAINING ALL EXPLICIT LEDGER STATUS CODES
+def get_field_action_response_code(row) -> str:
+    try:
+        bkt = int(pd.to_numeric(row.get("LAN_BKT", 0), errors="coerce", downcast="integer"))
+        dpd = int(pd.to_numeric(row.get("LAN_DPD", 0), errors="coerce"))
+        pdt = str(row.get("LAN_PDT", "PERSONAL_LOAN")).strip().upper()
+        ecs_per = float(pd.to_numeric(row.get("ECS_SUCCESS_PER", 100), errors="coerce"))
+        max_dpd_3m = int(pd.to_numeric(row.get("MAX_DAY_3M", 0), errors="coerce"))
+
+        # ------------------------------------------------------------------
+        # TIER 0: STANDARD CLEAN STANDING
+        # ------------------------------------------------------------------
+        if bkt == 0 and dpd == 0:
+            return "PAID_VIA_CLEARING"
+
+        # ------------------------------------------------------------------
+        # TIER 1: HARD DEFAULT & SEVERE LIFECYCLE BREACH (BUCKET 4+ OR DPD > 90)
+        # ------------------------------------------------------------------
+        if bkt >= 4 or dpd > 90:
+            if pdt == "GOLD_LOAN":
+                return "GOLD_JEWELRY_SENT_TO_PUBLIC_AUCTION"
+            if pdt == "VEHICLE_LOAN":
+                return "VEHICLE_SEIZED_GARAGE_AUCTION_LISTED"
+            if pdt in ["HOME_LOAN", "LAP"]:
+                if dpd > 120:
+                    return "RECEIVER_APPOINTED_PROPERTY_SEAL_INITIATED"
+                return "SARFAESI_POSSESSION_NOTICE_ISSUED"
+            if max_dpd_3m > 120:
+                return "ARBITRATION_PROCEEDINGS_INITIATED"
+            return "FINAL_LEGAL_DEMAND_NOTICE"
+
+        # ------------------------------------------------------------------
+        # TIER 2: HIGH OVERDUE RISK & LEGAL STAGE PREPARATION (BUCKET 3)
+        # ------------------------------------------------------------------
+        if bkt == 3 or (60 < dpd <= 90):
+            if pdt in ["HOME_LOAN", "LAP", "VEHICLE_LOAN"]:
+                return "HOUSE_LOCKED_ASSET_REPO_TRIGGERED"
+            if pdt == "CREDIT_CARD":
+                return "CARD_BLOCKED_EXTERNAL_ASSIGNMENT"
+            return "LEGAL_SECTIONS_138_NOTICE_SERVED"
+
+        # ------------------------------------------------------------------
+        # TIER 3: MID-DELINQUENCY FIELD ACTION ALLOCATIONS (BUCKET 2)
+        # ------------------------------------------------------------------
+        if bkt == 2 or (30 < dpd <= 60):
+            if ecs_per < 40:
+                return "FINAL_REMINDER_LOAN_COLLATERAL"
+            if max_dpd_3m > 45:
+                return "LEGAL_NOTICE_UNDER_PREPARATION"
+            if pdt in ["PERSONAL_LOAN", "CREDIT_CARD"]:
+                return "VALUATION_AUDIT_COMPLETED"
+            return "FIELD_VISIT_ARRANGED"
+
+        # ------------------------------------------------------------------
+        # TIER 4: SOFT EARLY DELINQUENCY HANDLING (BUCKET 1)
+        # ------------------------------------------------------------------
+        if bkt == 1 or (0 < dpd <= 30):
+            # Check clearing bounce conditions
+            if ecs_per < 75:
+                if max_dpd_3m > 15:
+                    return "CARD_LIMIT_TEMPORARY_FREEZE"
+                return "REPAYMENT_DELAY_PTP"
+            # Customer contact loops
+            if "REPAYMENT_DELAY_PTP" in str(row.get("Hold_Reason", "")):
+                return "CUSTOMER_PROM_REMITTANCE"
+            if pdt == "CREDIT_CARD":
+                return "MARGIN_CALL_SMS_SENT"
+            if dpd > 15:
+                return "LEGAL_NOTICE_DELIVERED"
+            return "REMINDER_SMS_SENT"
+
+        # ------------------------------------------------------------------
+        # TIER 5: ADMINISTRATIVE MONITORING EXCEPTIONS
+        # ------------------------------------------------------------------
+        if ecs_per < 90:
+            return "CASHFLOW_DELAY_PTP"
+        if max_dpd_3m > 0:
+            return "SITE_VISIT_COMPLETED_WARNING"
+        
+        return "FIELD_VISIT_PENDING"
+
+    except:
+        return "PAID_VIA_CLEARING"
+
 def transform_25_to_108_ledger(raw_df: pd.DataFrame) -> pd.DataFrame:
     if raw_df is None or raw_df.empty:
         return pd.DataFrame(columns=MASTER_108_HEADERS)
@@ -45,7 +129,6 @@ def transform_25_to_108_ledger(raw_df: pd.DataFrame) -> pd.DataFrame:
     for field in numeric_fields:
         processed_df[field] = pd.to_numeric(processed_df[field], errors="coerce").fillna(0).astype(int)
 
-    # Dynamic date anchor: uses the live server clock instead of hardcoded strings
     current_date = datetime.today()
 
     def compute_vintage_months(disb_val):
@@ -58,7 +141,6 @@ def transform_25_to_108_ledger(raw_df: pd.DataFrame) -> pd.DataFrame:
             if pd.isna(parsed_d): 
                 return 24
             
-            # Formulates real calendar age gap tracking matrices dynamically across any month length
             months_diff = (current_date.year - parsed_d.year) * 12 + (current_date.month - parsed_d.month)
             return max(1, int(months_diff))
         except:
@@ -99,14 +181,16 @@ def transform_25_to_108_ledger(raw_df: pd.DataFrame) -> pd.DataFrame:
     processed_df["UCIC_DISB_AMT"] = processed_df["LAN_DISB_AMT"]
     processed_df["FINAL_POCKET"] = "BKT_" + processed_df["LAN_BKT"].astype(str)
     processed_df["CYCLE_DATE"] = current_date.strftime("%d-%m-%Y")
+    
+    # ✅ DYNAMIC EVALUATION OF THE EXTENDED PRODUCTION LEDGER STRING MATRICES
+    processed_df["RESPONSE_CODE_NEW"] = processed_df.apply(get_field_action_response_code, axis=1)
 
-    text_targets = ["MAKE", "MODEL", "SUBMODEL", "REGDNUM", "WRITEOFF_TAG", "NPA_TYPE", "MODULE", "FINAL_ALLO_ID", "RESPONSE_CODE_NEW"]
+    text_targets = ["MAKE", "MODEL", "SUBMODEL", "REGDNUM", "WRITEOFF_TAG", "NPA_TYPE", "MODULE", "FINAL_ALLO_ID"]
     for column in text_targets:
         processed_df[column] = processed_df[column].astype(str).str.replace(".0", "", regex=False).str.strip()
         processed_df[column] = processed_df[column].apply(lambda x: "NONE" if x in ["nan", "", "0"] else x)
     return processed_df
 
-# ✅ ADDED BACK TO RESOLVE THE ATTRIBUTERROR AND COMPLY WITH INTERFACE CALLS
 def compute_bucket_counts(df: pd.DataFrame) -> dict:
     if df is None or df.empty: 
         return {"b0": 0, "b1": 0, "b2": 0, "b3": 0, "b4": 0}
@@ -118,6 +202,9 @@ def compute_bucket_counts(df: pd.DataFrame) -> dict:
         "b3": len(df[bkt_series == 3]), 
         "b4": len(df[bkt_series >= 4])
     }
+### 📄 Block 2: Analytical Components & Dynamic PDF Engine (`engine.py` - Part 2)
+
+```python
 def generate_exposure_plotly(df: pd.DataFrame, product_selection: str):
     if product_selection == "[ SHOW ALL PRODUCTS ]":
         summary = df.groupby("LAN_PDT")["EXPOSURE_POS"].sum().reset_index()
@@ -156,19 +243,22 @@ def generate_audit_pdf(target_id: str, row_dict: dict, allocation_strategy: str 
         try: return int(float(val))
         except: return 0
 
-    emi = safe_convert(row_dict.get('LOAN_EMI', 0))
     bkt = safe_convert(row_dict.get('LAN_BKT', 0))
+    emi = safe_convert(row_dict.get('LOAN_EMI', 0))
     dpd = safe_convert(row_dict.get('LAN_DPD', 0))
     vintage = safe_convert(row_dict.get('UCIC_VINTAGE', 24))
+    
+    # Safely resolves response tags for table rendering matrix pipelines
+    dynamic_response_tag = row_dict.get('RESPONSE_CODE_NEW', get_field_action_response_code(row_dict))
 
     story.append(Paragraph("1. Re-Amortized Operational Parameter Audits", section_style))
     sect_data = [
         [Paragraph("Product Group (LAN_PDT):", cell_label_style), Paragraph(str(row_dict.get('LAN_PDT')), cell_value_style), Paragraph("Calculated Loan Tenure:", cell_label_style), Paragraph(f"{vintage} Months Active", cell_value_style)],
         [Paragraph("Original Disbursed Principal:", cell_label_style), Paragraph(f"₹{safe_convert(row_dict.get('LAN_DISB_AMT', 0)):,}", cell_value_style), Paragraph("Live Computed Balance (POS):", cell_label_style), Paragraph(f"₹{safe_convert(row_dict.get('LAN_POS', 0)):,}", cell_value_style)],
         [Paragraph("Contractual Monthly EMI:", cell_label_style), Paragraph(f"₹{emi:,}", cell_value_style), Paragraph("Arrears Principal Balance:", cell_label_style), Paragraph(f"₹{safe_convert(row_dict.get('LAN_INST_OV_AMT', 0)):,}", cell_value_style)],
-        [Paragraph("Days Past Due (LAN_DPD):", cell_label_style), Paragraph(f"{dpd} Days (Bucket {bkt})", cell_value_style), Paragraph("Late Presentation Penalty Fees:", cell_label_style), Paragraph(f"₹{safe_convert(row_dict.get('OVERDUE_CHARGE', 0)):,}", cell_value_style)]
+        [Paragraph("Days Past Due (LAN_DPD):", cell_label_style), Paragraph(f"{dpd} Days (Bucket {bkt})", cell_value_style), Paragraph("Field Action Response Code:", cell_label_style), Paragraph(f"<b>{dynamic_response_tag}</b>", cell_value_style)]
     ]
-    t = Table(sect_data, colWidths=[130, 130, 130, 130])
+    t = Table(sect_data, colWidths=)
     t.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'LEFT'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('BOTTOMPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 4), ('LINEBELOW', (0,0), (-1,-1), 0.5, colors.HexColor("#e2e8f0"))]))
     story.append(t)
     
