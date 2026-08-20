@@ -8,7 +8,6 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
-# Complete 108 Master Blueprint Framework Compliance Schema
 MASTER_108_HEADERS = [
     "UCIC", "LOAN_NO", "CUSTOMERNAME", "REPAY_MODE", "UCIC_EMI", "LOAN_EMI", "UCIC_INST_OVD_AMT", 
     "LAN_INST_OV_AMT", "ADDL_INTEREST", "BCC_DUE", "OVERDUE_CHARGE", "UCIC_POS", "LAN_POS", 
@@ -28,130 +27,106 @@ MASTER_108_HEADERS = [
     "RESPONSE_CODE_Jan26", "MAKEDATE_Jan26", "RESPONSE_CODE_Dec25", "MAKEDATE_Dec25", "CCL_MEGHA_ID", "PL_CYCLIC"
 ]
 
+INTEREST_PROFILES = {
+    "CREDIT_CARD": 0.36, "PERSONAL_LOAN": 0.14, "VEHICLE_LOAN": 0.095,
+    "HOME_LOAN": 0.085, "LAP": 0.11, "GOLD_LOAN": 0.12
+}
+
 def transform_25_to_108_ledger(raw_df: pd.DataFrame) -> pd.DataFrame:
-    """Takes a raw file and dynamically handles UCIC mappings alongside monthly vintage deltas."""
     if raw_df is None or raw_df.empty:
         return pd.DataFrame(columns=MASTER_108_HEADERS)
     
     processed_df = pd.DataFrame(index=raw_df.index, columns=MASTER_108_HEADERS)
-    
     for col in raw_df.columns:
         if col in processed_df.columns:
             processed_df[col] = raw_df[col]
             
-    # Numeric Baseline Cast Framework
-    numeric_targets = ["LOAN_EMI", "LAN_BKT", "LAN_DPD", "LAN_POS", "EXPOSURE_POS", "LAN_DISB_AMT"]
-    for col in numeric_targets:
-        processed_df[col] = pd.to_numeric(processed_df[col], errors="coerce").fillna(0).astype(int)
+    numeric_fields = ["LOAN_EMI", "LAN_BKT", "LAN_DPD", "LAN_DISB_AMT"]
+    for field in numeric_fields:
+        processed_df[field] = pd.to_numeric(processed_df[field], errors="coerce").fillna(0).astype(int)
 
-    if "CUST(#)" not in raw_df.columns or processed_df["CUST(#)"].fillna(0).astype(int).sum() == 0:
-        processed_df["CUST(#)"] = processed_df["UCIC"].astype(str).str.extract(r'(\d+)').fillna(7000).astype(int)
+    # Dynamic date anchor: tracks the live system clock instead of a static point in time
+    current_date = datetime.today()
 
-    # Core Overdue Calculations
-    processed_df["LAN_INST_OV_AMT"] = processed_df.apply(
-        lambda r: int(float(r["LAN_INST_OV_AMT"])) if (pd.notna(r["LAN_INST_OV_AMT"]) and float(r["LAN_INST_OV_AMT"]) > 0)
-        else int(r["LOAN_EMI"] * r["LAN_BKT"]), axis=1
+    def compute_vintage_months(disb_val):
+        if pd.isna(disb_val) or str(disb_val).strip() in ["", "nan", "NONE"]:
+            return 24
+        try:
+            # Handles varying date strings cleanly
+            parsed_d = pd.to_datetime(disb_val, format="%d-%m-%Y", errors='coerce')
+            if pd.isna(parsed_d):
+                parsed_d = pd.to_datetime(disb_val, errors='coerce')
+            if pd.isna(parsed_d): 
+                return 24
+            
+            # Calculates true historical duration loops without forcing a standard 26-month cap
+            months_diff = (current_date.year - parsed_d.year) * 12 + (current_date.month - parsed_d.month)
+            return max(1, int(months_diff))
+        except:
+            return 24
+
+    processed_df["UCIC_VINTAGE"] = processed_df["DISB_DATE"].apply(compute_vintage_months)
+    processed_df["UCIC_SUB_VINTAGE"] = (processed_df["UCIC_VINTAGE"] - 12).clip(lower=0)
+
+    def run_financial_amortization(row):
+        principal = row["LAN_DISB_AMT"]
+        annual_rate = INTEREST_PROFILES.get(str(row["LAN_PDT"]), 0.11)
+        monthly_rate = annual_rate / 12
+        
+        # Uses dynamically calculated loan age variables for individual row iteration
+        dynamic_vintage = int(row["UCIC_VINTAGE"])
+        missed_buckets = int(row["LAN_BKT"])
+        cleared_months = max(0, dynamic_vintage - missed_buckets)
+        
+        running_balance = principal
+        for _ in range(cleared_months):
+            interest_due = running_balance * monthly_rate
+            actual_payment = min(row["LOAN_EMI"], running_balance + interest_due)
+            running_balance -= (actual_payment - interest_due)
+        return int(max(0, running_balance))
+
+    processed_df["LAN_POS"] = processed_df.apply(run_financial_amortization, axis=1)
+    processed_df["EXPOSURE_POS"] = processed_df["LAN_POS"]
+    processed_df["LAN_INST_OV_AMT"] = processed_df["LOAN_EMI"] * processed_df["LAN_BKT"]
+    processed_df["OVERDUE_CHARGE"] = processed_df["LAN_DPD"].apply(
+        lambda d: 0 if d == 0 else (300 if d <= 30 else (800 if d <= 60 else (1200 if d <= 90 else 2500)))
     )
-    processed_df["OVERDUE_CHARGE"] = processed_df.apply(
-        lambda r: int(float(r["OVERDUE_CHARGE"])) if (pd.notna(r["OVERDUE_CHARGE"]) and float(r["OVERDUE_CHARGE"]) > 0)
-        else int(0 if r["LAN_DPD"] == 0 else (300 if r["LAN_DPD"] <= 30 else (800 if r["LAN_DPD"] <= 60 else (1200 if r["LAN_DPD"] <= 90 else 2500)))),
-        axis=1
-    )
 
-    # ==============================================================================
-    # 🎯 SYNCHRONIZED EQUALITY & BUCKET DESK ALLOCATION MAPPING
-    # ==============================================================================
     processed_df["UCIC_EMI"] = processed_df["LOAN_EMI"]
     processed_df["UCIC_INST_OVD_AMT"] = processed_df["LAN_INST_OV_AMT"]
     processed_df["UCIC_POS"] = processed_df["LAN_POS"]
     processed_df["UCIC_PDT"] = processed_df["LAN_PDT"]
-    processed_df["UCIC_DISB_AMT"] = processed_df["LAN_DISB_AMT"]
     processed_df["UCIC_DPD"] = processed_df["LAN_DPD"]
-    
-    # Enforced Variable Sync
     processed_df["UCIC_BUCKET"] = processed_df["LAN_BKT"]
+    processed_df["UCIC_DISB_AMT"] = processed_df["LAN_DISB_AMT"]
     processed_df["FINAL_POCKET"] = "BKT_" + processed_df["LAN_BKT"].astype(str)
-    # ==============================================================================
+    processed_df["CYCLE_DATE"] = current_date.strftime("%d-%m-%Y")
 
-    # ==============================================================================
-    # 📆 DATEDIFF VINTAGE CALCULATION ENGINE LAYER (CURRENT EPOCH: AUGUST 2026)
-    # ==============================================================================
-    current_date = datetime(2026, 8, 20)
-    
-    # Dynamic Date Field Processing with explicit fallbacks
-    def calculate_month_diff(date_val, fallback_months=24):
-        if pd.isna(date_val) or str(date_val).strip() in ["", "nan", "NONE"]:
-            return fallback_months
-        try:
-            parsed_date = pd.to_datetime(date_val, errors='coerce')
-            if pd.isna(parsed_date):
-                return fallback_months
-            return (current_date.year - parsed_date.year) * 12 + (current_date.month - parsed_date.month)
-        except:
-            return fallback_months
-
-    # Sourcing dates from base parameters if onboarding date columns are unavailable
-    processed_df["UCIC_VINTAGE"] = processed_df["DISB_DATE"].apply(lambda d: calculate_month_diff(d, fallback_months=26))
-    processed_df["UCIC_SUB_VINTAGE"] = processed_df["CYCLE_DATE"].apply(lambda d: calculate_month_diff(d, fallback_months=14))
-    # ==============================================================================
-
-    # Sanitize string parameter outputs
-    text_placeholders = ["MAKE", "MODEL", "SUBMODEL", "REGDNUM", "WRITEOFF_TAG", "NPA_TYPE", "MODULE", "FINAL_ALLO_ID", "RESPONSE_CODE_NEW"]
-    for col in text_placeholders:
-        processed_df[col] = processed_df[col].astype(str).str.replace(".0", "", regex=False).str.strip()
-        processed_df[col] = processed_df[col].apply(lambda x: "NONE" if x in ["nan", "", "0"] else x)
-
-    historical_months = ["RESPONSE_CODE_May26", "RESPONSE_CODE_Apr26", "RESPONSE_CODE_Mar26", "RESPONSE_CODE_Feb26", "RESPONSE_CODE_Jan26"]
-    for col in historical_months:
-        processed_df[col] = processed_df[col].fillna("OK")
-
-    for col in MASTER_108_HEADERS:
-        if processed_df[col].isna().all():
-            processed_df[col] = 0
-
+    text_targets = ["MAKE", "MODEL", "SUBMODEL", "REGDNUM", "WRITEOFF_TAG", "NPA_TYPE", "MODULE", "FINAL_ALLO_ID", "RESPONSE_CODE_NEW"]
+    for column in text_targets:
+        processed_df[column] = processed_df[column].astype(str).str.replace(".0", "", regex=False).str.strip()
+        processed_df[column] = processed_df[column].apply(lambda x: "NONE" if x in ["nan", "", "0"] else x)
     return processed_df
-
-def compute_bucket_counts(df: pd.DataFrame) -> dict:
-    """Calculates ledger metrics across delinquency tiers safely."""
-    if df is None or df.empty:
-        return {"b0": 0, "b1": 0, "b2": 0, "b3": 0, "b4": 0}
-    bkt_series = df["LAN_BKT"].astype(int)
-    return {
-        "b0": len(df[bkt_series == 0]),
-        "b1": len(df[bkt_series == 1]),
-        "b2": len(df[bkt_series == 2]),
-        "b3": len(df[bkt_series == 3]),
-        "b4": len(df[bkt_series == 4]),
-    }
 def generate_exposure_plotly(df: pd.DataFrame, product_selection: str):
-    """Assembles an interactive Plotly donut chart configuration."""
     if product_selection == "[ SHOW ALL PRODUCTS ]":
         summary = df.groupby("LAN_PDT")["EXPOSURE_POS"].sum().reset_index()
-        color_map = {
-            "PERSONAL_LOAN": "#2980b9", "CREDIT_CARD": "#8e44ad", "VEHICLE_LOAN": "#27ae60",
-            "HOME_LOAN": "#d35400", "GOLD_LOAN": "#f1c40f", "LAP": "#16a085"
-        }
+        color_map = {"PERSONAL_LOAN": "#2980b9", "CREDIT_CARD": "#8e44ad", "VEHICLE_LOAN": "#27ae60", "HOME_LOAN": "#d35400", "GOLD_LOAN": "#f1c40f", "LAP": "#16a085"}
         names_col = "LAN_PDT"
-        title = "Total Active Capital Exposure Share (Cross-Product Overview)"
+        title = "Total Active Capital Exposure Share"
     else:
         summary = df.groupby("LAN_BKT")["EXPOSURE_POS"].sum().reset_index()
         summary["BKT_NAME"] = "Bucket " + summary["LAN_BKT"].astype(str)
-        color_map = {
-            "Bucket 0": "#27ae60", "Bucket 1": "#f1c40f", "Bucket 2": "#e67e22",
-            "Bucket 3": "#d35400", "Bucket 4": "#c0392b"
-        }
+        color_map = {"Bucket 0": "#27ae60", "Bucket 1": "#f1c40f", "Bucket 2": "#e67e22", "Bucket 3": "#d35400", "Bucket 4": "#c0392b"}
         names_col = "BKT_NAME"
-        title = f"Full 5-Stage Capital Exposure Distribution — {product_selection}"
+        title = f"Capital Exposure Distribution — {product_selection}"
 
     fig = px.pie(summary, values="EXPOSURE_POS", names=names_col, color=names_col, color_discrete_map=color_map, hole=0.4)
     fig.update_traces(textinfo="percent+label", textposition="outside", hovertemplate="<b>%{label}</b><br>Exposure: ₹%{value:,.0f}<br>% Share: %{percent}")
     fig.update_layout(title={"text": f"<b>{title}</b>", "y": 0.95, "x": 0.5, "xanchor": "center"}, showlegend=False, margin=dict(t=60, b=20, l=20, r=20), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
     return fig
 
-def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
-    """Generates a professional executive-ready PDF audit report using ReportLab."""
+def generate_audit_pdf(target_id: str, row_dict: dict, allocation_strategy: str) -> bytes:
     buffer = BytesIO()
-    # Letter size width is 612 pt. Margins are 40 + 40 = 80 pt. Printable canvas = 532 pt.
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
     story = []
     styles = getSampleStyleSheet()
@@ -160,96 +135,36 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
     section_style = ParagraphStyle('SectionHeading', parent=styles['Heading2'], fontName='Helvetica-Bold', fontSize=11, textColor=colors.HexColor("#2a5298"), spaceBefore=10, spaceAfter=4)
     cell_label_style = ParagraphStyle('CellLabel', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8, textColor=colors.HexColor("#4a5568"))
     cell_value_style = ParagraphStyle('CellValue', parent=styles['Normal'], fontName='Helvetica', fontSize=8, textColor=colors.HexColor("#1a202c"))
-    alert_value_style = ParagraphStyle('AlertValue', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8, textColor=colors.HexColor("#c0392b"))
     strategy_style = ParagraphStyle('StrategyText', parent=styles['Normal'], fontName='Helvetica-Oblique', fontSize=9, leading=13, textColor=colors.HexColor("#2d3748"))
 
-    story.append(Paragraph("CREDITPULSE AI — 108-HEADER COMPLIANCE AUDIT REPORT", title_style))
-    story.append(Paragraph(f"<b>Account Identification Key (UCIC):</b> {target_id}", cell_value_style))
+    story.append(Paragraph("CREDITPULSE AI — MASTER COMPLIANCE AUDIT REPORT", title_style))
+    story.append(Paragraph(f"<b>Audit Key (UCIC):</b> {target_id} | Session Date: {datetime.today().strftime('%Y-%m-%d')}", cell_value_style))
     story.append(Spacer(1, 10))
     
-    def safe_numeric_convert(val) -> int:
-        if pd.isna(val) or str(val).strip() == '' or str(val).lower() == 'nan':
-            return 0
-        try:
-            return int(float(val))
-        except (ValueError, TypeError):
-            return 0
+    def safe_convert(val):
+        try: return int(float(val))
+        except: return 0
 
-    def create_section_table(data_matrix):
-        # FIXED: Distributed 532pt canvas width perfectly across 4 columns (Labels: 130pt, Values: 136pt)
-        t = Table(data_matrix, colWidths=[130, 136, 130, 136])
-        t.setStyle(TableStyle([
-            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
-            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-            ('TOPPADDING', (0,0), (-1,-1), 4),
-            ('LINEBELOW', (0,0), (-1,-1), 0.5, colors.HexColor("#e2e8f0")),
-        ]))
-        return t
+    emi = safe_convert(row_dict.get('LOAN_EMI', 0))
+    bkt = safe_convert(row_dict.get('LAN_BKT', 0))
+    dpd = safe_convert(row_dict.get('LAN_DPD', 0))
+    vintage = safe_convert(row_dict.get('UCIC_VINTAGE', 24))
 
-    emi = safe_numeric_convert(row_dict.get('LOAN_EMI', 0))
-    bkt = safe_numeric_convert(row_dict.get('LAN_BKT', 0))
-    dpd = safe_numeric_convert(row_dict.get('LAN_DPD', 0))
-    
-    actual_overdue_principal = safe_numeric_convert(row_dict.get('LAN_INST_OV_AMT', 0))
-    calculated_late_fees = safe_numeric_convert(row_dict.get('OVERDUE_CHARGE', 0))
-
-    # Section 1
-    story.append(Paragraph("1. Sourcing & Identification Parameters", section_style))
-    sect1_data = [
-        [Paragraph("Product Group (LAN_PDT):", cell_label_style), Paragraph(str(row_dict.get('LAN_PDT', 'NONE')), cell_value_style), Paragraph("Module Category:", cell_label_style), Paragraph(str(row_dict.get('MODULE', 'NONE')), cell_value_style)],
-        [Paragraph("Customer Name:", cell_label_style), Paragraph(str(row_dict.get('CUSTOMERNAME', 'NONE')), cell_value_style), Paragraph("Loan Account No:", cell_label_style), Paragraph(str(row_dict.get('LOAN_NO', 'NONE')), cell_value_style)],
-        [Paragraph("Original Disbursal Date:", cell_label_style), Paragraph(str(row_dict.get('DISB_DATE', 'NONE')), cell_value_style), Paragraph("Disbursed Principal:", cell_label_style), Paragraph(f"₹{safe_numeric_convert(row_dict.get('LAN_DISB_AMT', 0)):,}", cell_value_style)]
+    story.append(Paragraph("1. Re-Amortized Operational Parameter Audits", section_style))
+    sect_data = [
+        [Paragraph("Product Group (LAN_PDT):", cell_label_style), Paragraph(str(row_dict.get('LAN_PDT')), cell_value_style), Paragraph("Calculated Loan Tenure:", cell_label_style), Paragraph(f"{vintage} Months Active", cell_value_style)],
+        [Paragraph("Original Disbursed Principal:", cell_label_style), Paragraph(f"₹{safe_convert(row_dict.get('LAN_DISB_AMT', 0)):,}", cell_value_style), Paragraph("Live Computed Balance (POS):", cell_label_style), Paragraph(f"₹{safe_convert(row_dict.get('LAN_POS', 0)):,}", cell_value_style)],
+        [Paragraph("Contractual Monthly EMI:", cell_label_style), Paragraph(f"₹{emi:,}", cell_value_style), Paragraph("Arrears Principal Balance:", cell_label_style), Paragraph(f"₹{safe_convert(row_dict.get('LAN_INST_OV_AMT', 0)):,}", cell_value_style)],
+        [Paragraph("Days Past Due (LAN_DPD):", cell_label_style), Paragraph(f"{dpd} Days (Bucket {bkt})", cell_value_style), Paragraph("Late Presentation Penalty Fees:", cell_label_style), Paragraph(f"₹{safe_convert(row_dict.get('OVERDUE_CHARGE', 0)):,}", cell_value_style)]
     ]
-    story.append(create_section_table(sect1_data))
+    t = Table(sect_data, colWidths=[140, 120, 130, 140])
+    t.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'LEFT'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('BOTTOMPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 4), ('LINEBELOW', (0,0), (-1,-1), 0.5, colors.HexColor("#e2e8f0"))]))
+    story.append(t)
     
-    # Section 2
-    story.append(Paragraph("2. Collateral Asset Verification Parameters", section_style))
-    doc_make = str(row_dict.get('MAKE', 'NONE'))
-    doc_model = str(row_dict.get('MODEL', 'NONE'))
-    doc_reg = str(row_dict.get('REGDNUM', 'NONE'))
-    sect2_data = [
-        [Paragraph("Make / Restructuring:", cell_label_style), Paragraph(doc_make, cell_value_style), Paragraph("Asset Model / Segment:", cell_label_style), Paragraph(doc_model, cell_value_style)],
-        [Paragraph("Registration Refs (REGDNUM):", cell_label_style), Paragraph(doc_reg, cell_value_style), Paragraph("HL / LAP Flags:", cell_label_style), Paragraph(f"{row_dict.get('HL_NONHL','NON_HL')} | {row_dict.get('LAP_NONLAP','NON_LAP')}", cell_value_style)]
-    ]
-    story.append(create_section_table(sect2_data))
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("2. Official Mandated Playbook Strategy Directive", section_style))
+    story.append(Paragraph(str(allocation_strategy), strategy_style))
     
-    # Section 3
-    story.append(Paragraph("3. Monthly Billing & Active Balances", section_style))
-    sect3_data = [
-        [Paragraph("Gateway Presentation Mode:", cell_label_style), Paragraph(str(row_dict.get('REPAY_MODE', 'NONE')), cell_value_style), Paragraph("Loan Scheduled EMI:", cell_label_style), Paragraph(f"₹{emi:,}", cell_value_style)],
-        [Paragraph("Principal Bal (LAN_POS):", cell_label_style), Paragraph(f"₹{safe_numeric_convert(row_dict.get('LAN_POS', 0)):,}", cell_value_style), Paragraph("Total Exposure POS Risk:", cell_label_style), Paragraph(f"₹{safe_numeric_convert(row_dict.get('EXPOSURE_POS', 0)):,}", cell_value_style)]
-    ]
-    story.append(create_section_table(sect3_data))
-    
-    # Section 4
-    story.append(Paragraph("4. Delinquency Buckets & Field Allocations", section_style))
-    sect4_data = [
-        [Paragraph("Days Past Due (LAN_DPD):", cell_label_style), Paragraph(f"{dpd} Days", alert_value_style), Paragraph("Risk Bucket:", cell_label_style), Paragraph(f"Bucket {bkt}", cell_value_style)],
-        [Paragraph("Total Overdue Principal:", cell_label_style), Paragraph(f"₹{actual_overdue_principal:,}", cell_value_style), Paragraph("Late Presentation Fees:", cell_label_style), Paragraph(f"₹{calculated_late_fees:,}", cell_value_style)],
-        [Paragraph("Assigned Agency ID Desk:", cell_label_style), Paragraph(str(row_dict.get('FINAL_ALLO_ID', 'NONE')), cell_value_style), Paragraph("Field Action Response Code:", cell_label_style), Paragraph(str(row_dict.get('RESPONSE_CODE_NEW', 'NONE')), cell_value_style)],
-        [Paragraph("NPA Status Code:", cell_label_style), Paragraph(str(row_dict.get('NPA_TYPE', 'NONE')), cell_value_style), Paragraph("Account Writeoff Status:", cell_label_style), Paragraph(str(row_dict.get('WRITEOFF_TAG', 'NONE')), cell_value_style)]
-    ]
-    story.append(create_section_table(sect4_data))
-    
-    # Section 5
-    story.append(Spacer(1, 8))
-    story.append(Paragraph("5. Official Mandated Playbook Strategy Directive", section_style))
-    
-    # FIXED: Completed the full closed map dictionary and added structural string fallbacks
-    strategies = {
-        0: "MONITORING LOG: Account is currently standard. Continue normal automated payment gateway drops.",
-        1: "DIGITAL REMINDER INTERVENTION: Missed current cycle payment date (1-30 DPD). Deploy automated outreach pipelines via SMS, WhatsApp, and interactive voice response drops.",
-        2: "TELE-CALLING ESCALATION: 31-60 DPD tier reach. Route directly to soft collections calling queues for balance configuration layout options.",
-        3: "FIELD VISIT FORCE ALLOCATION: High risk delinquency zone (61-90 DPD). Dispatch ground recovery agents for mandatory physical verification and documentation collection.",
-        4: "CRITICAL RECOVERY / LEGAL ACTION: Extreme risk breach (90+ DPD). Cease administrative lines and dispatch formal legal notifications for repossession or asset arbitration."
-    }
-    
-    # Get strategy text dynamically based on asset bucket, defaulting to bucket 4 legal lines if out of bounds
-    selected_strategy = strategies.get(bkt, strategies[4])
-    story.append(Paragraph(selected_strategy, strategy_style))
-    
-    # Render and compile layout document
     doc.build(story)
     pdf_bytes = buffer.getvalue()
     buffer.close()
