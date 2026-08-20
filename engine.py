@@ -199,7 +199,6 @@ def generate_audit_pdf(target_id: str, row_dict: dict, allocation_strategy: str 
     dpd = safe_convert(row_dict.get('LAN_DPD', 0))
     vintage = safe_convert(row_dict.get('UCIC_VINTAGE', 24))
     
-    # Map raw bucket states to precise workspace risk tier classifications
     risk_tiers = {
         0: "STANDARD / PERFORMING ASSET",
         1: "SMA-0 / SPECIAL MENTION ACCOUNT",
@@ -217,7 +216,8 @@ def generate_audit_pdf(target_id: str, row_dict: dict, allocation_strategy: str 
         [Paragraph("Customer Name:", cell_label_style), Paragraph(str(row_dict.get('CUSTOMERNAME')), cell_value_style), Paragraph("Loan Account No:", cell_label_style), Paragraph(str(row_dict.get('LOAN_NO')), cell_value_style)],
         [Paragraph("Original Disbursal Date:", cell_label_style), Paragraph(str(row_dict.get('DISB_DATE')), cell_value_style), Paragraph("Calculated Loan Tenure:", cell_label_style), Paragraph(f"{vintage} Months Active", cell_value_style)]
     ]
-    t1 = Table(meta_data, colWidths=)
+    # ✅ Fixed syntax mistake by setting accurate grid dimension values
+    t1 = Table(meta_data, colWidths=[130, 130, 130, 140])
     t1.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'LEFT'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('BOTTOMPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 4), ('LINEBELOW', (0,0), (-1,-1), 0.5, colors.HexColor("#e2e8f0"))]))
     story.append(t1)
     
@@ -229,7 +229,8 @@ def generate_audit_pdf(target_id: str, row_dict: dict, allocation_strategy: str 
         [Paragraph("Days Past Due (LAN_DPD):", cell_label_style), Paragraph(f"{dpd} Days", cell_value_style), Paragraph("Total Overdue Principal:", cell_label_style), Paragraph(f"₹{safe_convert(row_dict.get('LAN_INST_OV_AMT', 0)):,}", cell_value_style)],
         [Paragraph("Field Action Response Code:", cell_label_style), Paragraph(f"<b>{dynamic_response_tag}</b>", cell_value_style), Paragraph("Late Presentation Penalty Fees:", cell_label_style), Paragraph(f"₹{safe_convert(row_dict.get('OVERDUE_CHARGE', 0)):,}", cell_value_style)]
     ]
-    t2 = Table(sect_data, colWidths=)
+    # ✅ Fixed syntax mistake by setting accurate grid dimension values
+    t2 = Table(sect_data, colWidths=[130, 130, 130, 140])
     t2.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'LEFT'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('BOTTOMPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 4), ('LINEBELOW', (0,0), (-1,-1), 0.5, colors.HexColor("#e2e8f0"))]))
     story.append(t2)
     
