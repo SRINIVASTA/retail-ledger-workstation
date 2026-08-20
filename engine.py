@@ -88,7 +88,7 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
     
     def safe_numeric_convert(val) -> int:
         """Helper to convert blank cells or NaN into zero safely."""
-        if pd.isna(val) or str(val).strip() == '':
+        if pd.isna(val) or str(val).strip() == '' or str(val).lower() == 'nan':
             return 0
         try:
             return int(float(val))
@@ -112,16 +112,16 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
     bkt = safe_numeric_convert(row_dict.get('LAN_BKT', 0))
     dpd = safe_numeric_convert(row_dict.get('LAN_DPD', 0))
 
-    # DYNAMIC LOGIC: Automatically calculate missing parameters out of base figures
+    # DYNAMIC LOGIC REMEDIATION: Force dynamic engine parsing to eliminate all raw NaN bugs
     calculated_overdue_principal = emi * bkt
     calculated_late_fees = 0 if dpd == 0 else (300 if dpd <= 30 else (800 if dpd <= 60 else (1200 if dpd <= 90 else 2500)))
 
     # SECTION 1: Sourcing & Identification Parameters
     story.append(Paragraph("1. Sourcing & Identification Parameters", section_style))
     sect1_data = [
-        [Paragraph("Product Group (LAN_PDT):", cell_label_style), Paragraph(str(row_dict.get('LAN_PDT', ''))), Paragraph("Module Category:", cell_label_style), Paragraph(str(row_dict.get('MODULE', '')))],
-        [Paragraph("Customer Name:", cell_label_style), Paragraph(str(row_dict.get('CUSTOMERNAME', ''))), Paragraph("Loan Account No:", cell_label_style), Paragraph(str(row_dict.get('LOAN_NO', '')))],
-        [Paragraph("Original Disbursal Date:", cell_label_style), Paragraph(str(row_dict.get('DISB_DATE', ''))), Paragraph("Disbursed Principal:", cell_label_style), Paragraph(f"₹{safe_numeric_convert(row_dict.get('LAN_DISB_AMT', 0)):,}", cell_value_style)]
+        [Paragraph("Product Group (LAN_PDT):", cell_label_style), Paragraph(str(row_dict.get('LAN_PDT', '')), cell_value_style), Paragraph("Module Category:", cell_label_style), Paragraph(str(row_dict.get('MODULE', '')), cell_value_style)],
+        [Paragraph("Customer Name:", cell_label_style), Paragraph(str(row_dict.get('CUSTOMERNAME', '')), cell_value_style), Paragraph("Loan Account No:", cell_label_style), Paragraph(str(row_dict.get('LOAN_NO', '')), cell_value_style)],
+        [Paragraph("Original Disbursal Date:", cell_label_style), Paragraph(str(row_dict.get('DISB_DATE', '')), cell_value_style), Paragraph("Disbursed Principal:", cell_label_style), Paragraph(f"₹{safe_numeric_convert(row_dict.get('LAN_DISB_AMT', 0)):,}", cell_value_style)]
     ]
     story.append(create_section_table(sect1_data))
     
@@ -132,15 +132,15 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
     
     story.append(Paragraph("2. Collateral Asset Verification Parameters", section_style))
     sect2_data = [
-        [Paragraph("Make / Restructuring:", cell_label_style), Paragraph(doc_make if doc_make.strip() != "" else "NONE", cell_value_style), Paragraph("Asset Model / Segment:", cell_label_style), Paragraph(doc_model if doc_model.strip() != "" else "NONE", cell_value_style)],
-        [Paragraph("Registration Refs (REGDNUM):", cell_label_style), Paragraph(doc_reg if doc_reg.strip() != "" else "NONE", cell_value_style), Paragraph("HL / LAP Flags:", cell_label_style), Paragraph(f"{row_dict.get('HL_NONHL','')} | {row_dict.get('LAP_NONLAP','')}", cell_value_style)]
+        [Paragraph("Make / Restructuring:", cell_label_style), Paragraph(doc_make if doc_make.strip() != "" and doc_make.lower() != 'nan' else "NONE", cell_value_style), Paragraph("Asset Model / Segment:", cell_label_style), Paragraph(doc_model if doc_model.strip() != "" and doc_model.lower() != 'nan' else "NONE", cell_value_style)],
+        [Paragraph("Registration Refs (REGDNUM):", cell_label_style), Paragraph(doc_reg if doc_reg.strip() != "" and doc_reg.lower() != 'nan' else "NONE", cell_value_style), Paragraph("HL / LAP Flags:", cell_label_style), Paragraph(f"{row_dict.get('HL_NONHL','')} | {row_dict.get('LAP_NONLAP','')}", cell_value_style)]
     ]
     story.append(create_section_table(sect2_data))
     
     # SECTION 3: Monthly Billing & Active Balances
     story.append(Paragraph("3. Monthly Billing & Active Balances", section_style))
     sect3_data = [
-        [Paragraph("Gateway Presentation Mode:", cell_label_style), Paragraph(str(row_dict.get('REPAY_MODE', ''))), Paragraph("Loan Scheduled EMI:", cell_label_style), Paragraph(f"₹{emi:,}", cell_value_style)],
+        [Paragraph("Gateway Presentation Mode:", cell_label_style), Paragraph(str(row_dict.get('REPAY_MODE', '')), cell_value_style), Paragraph("Loan Scheduled EMI:", cell_label_style), Paragraph(f"₹{emi:,}", cell_value_style)],
         [Paragraph("Principal Bal (LAN_POS):", cell_label_style), Paragraph(f"₹{safe_numeric_convert(row_dict.get('LAN_POS', 0)):,}", cell_value_style), Paragraph("Total Exposure POS Risk:", cell_label_style), Paragraph(f"₹{safe_numeric_convert(row_dict.get('EXPOSURE_POS', 0)):,}", cell_value_style)]
     ]
     story.append(create_section_table(sect3_data))
@@ -150,8 +150,8 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
     sect4_data = [
         [Paragraph("Days Past Due (LAN_DPD):", cell_label_style), Paragraph(f"{dpd} Days", alert_value_style), Paragraph("Risk Bucket:", cell_label_style), Paragraph(f"Bucket {bkt}", cell_value_style)],
         [Paragraph("Total Overdue Principal:", cell_label_style), Paragraph(f"₹{calculated_overdue_principal:,}", cell_value_style), Paragraph("Late Presentation Fees:", cell_label_style), Paragraph(f"₹{calculated_late_fees:,}", cell_value_style)],
-        [Paragraph("Assigned Agency ID Desk:", cell_label_style), Paragraph(str(row_dict.get('FINAL_ALLO_ID', 'NA'))), Paragraph("Field Action Response Code:", cell_label_style), Paragraph(str(row_dict.get('RESPONSE_CODE_NEW', 'NA')))],
-        [Paragraph("NPA Status Code:", cell_label_style), Paragraph(str(row_dict.get('NPA_TYPE', 'NA'))), Paragraph("Account Writeoff Status:", cell_label_style), Paragraph(str(row_dict.get('WRITEOFF_TAG', 'NA')))]
+        [Paragraph("Assigned Agency ID Desk:", cell_label_style), Paragraph(str(row_dict.get('FINAL_ALLO_ID', 'NA')), cell_value_style), Paragraph("Field Action Response Code:", cell_label_style), Paragraph(str(row_dict.get('RESPONSE_CODE_NEW', 'NA')), cell_value_style)],
+        [Paragraph("NPA Status Code:", cell_label_style), Paragraph(str(row_dict.get('NPA_TYPE', 'NA')), cell_value_style), Paragraph("Account Writeoff Status:", cell_label_style), Paragraph(str(row_dict.get('WRITEOFF_TAG', 'NA')), cell_value_style)]
     ]
     story.append(create_section_table(sect4_data))
     
