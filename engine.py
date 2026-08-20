@@ -7,7 +7,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
-# Complete Master Schema Blueprint Tracking Grid Setup
+# Complete Master Blueprint Configuration Schema
 MASTER_108_HEADERS = [
     "UCIC", "LOAN_NO", "CUSTOMERNAME", "REPAY_MODE", "UCIC_EMI", "LOAN_EMI", "UCIC_INST_OVD_AMT", 
     "LAN_INST_OV_AMT", "ADDL_INTEREST", "BCC_DUE", "OVERDUE_CHARGE", "UCIC_POS", "LAN_POS", 
@@ -32,27 +32,24 @@ def transform_25_to_108_ledger(raw_df: pd.DataFrame) -> pd.DataFrame:
     if raw_df is None or raw_df.empty:
         return pd.DataFrame(columns=MASTER_108_HEADERS)
     
-    # 1. Initialize empty data columns structure matching master ledger template guidelines
     processed_df = pd.DataFrame(index=raw_df.index, columns=MASTER_108_HEADERS)
     
-    # 2. Map overlapping metrics found in original csv file
     for col in raw_df.columns:
         if col in processed_df.columns:
             processed_df[col] = raw_df[col]
             
-    # 3. Dynamic row-indexing fallback key generation if CUST(#) is completely null
     if "CUST(#)" not in raw_df.columns or raw_df["CUST(#)"].isna().all():
         if "UCIC" in raw_df.columns:
             processed_df["CUST(#)"] = raw_df["UCIC"].astype(str).str.extract(r'(\d+)').fillna(0).astype(int)
         else:
             processed_df["CUST(#)"] = range(1, len(raw_df) + 1)
 
-    # 4. Strict numeric baseline type conversion 
     processed_df["LOAN_EMI"] = pd.to_numeric(processed_df["LOAN_EMI"], errors="coerce").fillna(0).astype(int)
     processed_df["LAN_BKT"] = pd.to_numeric(processed_df["LAN_BKT"], errors="coerce").fillna(0).astype(int)
     processed_df["LAN_DPD"] = pd.to_numeric(processed_df["LAN_DPD"], errors="coerce").fillna(0).astype(int)
+    processed_df["EXPOSURE_POS"] = pd.to_numeric(processed_df["EXPOSURE_POS"], errors="coerce").fillna(0)
 
-    # 5. AUTOMATED GENERATION ENGINE LAYER: Map calculations over the missing 83 slots
+    # Core Dynamic Fields Auto-Generation Strategy
     processed_df["LAN_INST_OV_AMT"] = processed_df["LAN_INST_OV_AMT"].fillna(processed_df["LOAN_EMI"] * processed_df["LAN_BKT"])
     processed_df["OVERDUE_CHARGE"] = processed_df.apply(
         lambda r: 0 if r["LAN_DPD"] == 0 else (
@@ -60,18 +57,16 @@ def transform_25_to_108_ledger(raw_df: pd.DataFrame) -> pd.DataFrame:
         ), axis=1
     )
 
-    # 6. Initialize historical tracking arrays fallback data configurations
     historical_text_blocks = ["RESPONSE_CODE_May26", "RESPONSE_CODE_Apr26", "RESPONSE_CODE_Mar26", "RESPONSE_CODE_Feb26", "RESPONSE_CODE_Jan26"]
     for col in historical_text_blocks:
         processed_df[col] = processed_df[col].fillna("OK")
 
-    # Final sweep loop across any leftover unpopulated operational slot segments
     for col in MASTER_108_HEADERS:
         if processed_df[col].isna().all() or processed_df[col].isnull().all():
             if col in ["WRITEOFF_TAG", "NPA_TYPE", "MODULE", "FINAL_ALLO_ID", "RESPONSE_CODE_NEW"]:
                 processed_df[col] = processed_df[col].fillna("STANDARD")
             elif "DATE" in col or "MAKEDATE" in col:
-                processed_df[col] = processed_df[col].fillna("2026-08-20")
+                processed_df[col] = processed_df[col].fillna("2024-06-15")
             else:
                 processed_df[col] = processed_df[col].fillna(0)
 
@@ -89,6 +84,7 @@ def compute_bucket_counts(df: pd.DataFrame) -> dict:
         "b3": len(df[bkt_series == "3"]),
         "b4": len(df[bkt_series == "4"]),
     }
+
 def generate_exposure_plotly(df: pd.DataFrame, product_selection: str):
     """Assembles an interactive Plotly donut chart configuration."""
     if product_selection == "[ SHOW ALL PRODUCTS ]":
@@ -113,7 +109,6 @@ def generate_exposure_plotly(df: pd.DataFrame, product_selection: str):
     fig.update_traces(textinfo="percent+label", textposition="outside", hovertemplate="<b>%{label}</b><br>Exposure: ₹%{value:,.0f}<br>% Share: %{percent}")
     fig.update_layout(title={"text": f"<b>{title}</b>", "y": 0.95, "x": 0.5, "xanchor": "center"}, showlegend=False, margin=dict(t=60, b=20, l=20, r=20), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
     return fig
-
 def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
     """Generates a professional executive-ready PDF audit report using ReportLab."""
     buffer = BytesIO()
@@ -140,8 +135,7 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
             return 0
 
     def create_section_table(data_matrix):
-        # FIXED: Enforced a rigid, standard, 4-column cell dimensions framework layout array
-        t = Table(data_matrix, colWidths=[140, 120, 140, 120])
+        t = Table(data_matrix, colWidths=[140, 130, 140, 130])
         t.setStyle(TableStyle([
             ('ALIGN', (0,0), (-1,-1), 'LEFT'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
