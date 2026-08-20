@@ -50,9 +50,12 @@ if uploaded_file is None:
 @st.cache_data
 def parse_uploaded_ledger(file_buffer):
     try: 
-        return pd.read_csv(file_buffer)
+        raw_df = pd.read_csv(file_buffer)
+        # Dynamic expansion step: Pass the raw 25 headers to compile the 108 master grid
+        from engine import transform_25_to_108_ledger
+        return transform_25_to_108_ledger(raw_df)
     except Exception as e:
-        st.error(f"❌ Structural Read Error: {e}")
+        st.error(f"❌ Structural Read/Transformation Error: {e}")
         return None
 
 portfolio_df = parse_uploaded_ledger(uploaded_file)
