@@ -140,7 +140,8 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
             return 0
 
     def create_section_table(data_matrix):
-        t = Table(data_matrix, colWidths=)
+        # FIXED: Enforced a rigid, standard, 4-column cell dimensions framework layout array
+        t = Table(data_matrix, colWidths=[140, 120, 140, 120])
         t.setStyle(TableStyle([
             ('ALIGN', (0,0), (-1,-1), 'LEFT'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
