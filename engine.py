@@ -45,21 +45,20 @@ def transform_25_to_108_ledger(raw_df: pd.DataFrame) -> pd.DataFrame:
     for field in numeric_fields:
         processed_df[field] = pd.to_numeric(processed_df[field], errors="coerce").fillna(0).astype(int)
 
-    # Dynamic date anchor: tracks the live system clock instead of a static point in time
+    # Dynamic date anchor: uses the live server clock instead of hardcoded strings
     current_date = datetime.today()
 
     def compute_vintage_months(disb_val):
         if pd.isna(disb_val) or str(disb_val).strip() in ["", "nan", "NONE"]:
             return 24
         try:
-            # Handles varying date strings cleanly
             parsed_d = pd.to_datetime(disb_val, format="%d-%m-%Y", errors='coerce')
             if pd.isna(parsed_d):
                 parsed_d = pd.to_datetime(disb_val, errors='coerce')
             if pd.isna(parsed_d): 
                 return 24
             
-            # Calculates true historical duration loops without forcing a standard 26-month cap
+            # Formulates real calendar age gap tracking matrices dynamically across any month length
             months_diff = (current_date.year - parsed_d.year) * 12 + (current_date.month - parsed_d.month)
             return max(1, int(months_diff))
         except:
@@ -73,7 +72,6 @@ def transform_25_to_108_ledger(raw_df: pd.DataFrame) -> pd.DataFrame:
         annual_rate = INTEREST_PROFILES.get(str(row["LAN_PDT"]), 0.11)
         monthly_rate = annual_rate / 12
         
-        # Uses dynamically calculated loan age variables for individual row iteration
         dynamic_vintage = int(row["UCIC_VINTAGE"])
         missed_buckets = int(row["LAN_BKT"])
         cleared_months = max(0, dynamic_vintage - missed_buckets)
@@ -107,6 +105,19 @@ def transform_25_to_108_ledger(raw_df: pd.DataFrame) -> pd.DataFrame:
         processed_df[column] = processed_df[column].astype(str).str.replace(".0", "", regex=False).str.strip()
         processed_df[column] = processed_df[column].apply(lambda x: "NONE" if x in ["nan", "", "0"] else x)
     return processed_df
+
+# ✅ ADDED BACK TO RESOLVE THE ATTRIBUTERROR AND COMPLY WITH INTERFACE CALLS
+def compute_bucket_counts(df: pd.DataFrame) -> dict:
+    if df is None or df.empty: 
+        return {"b0": 0, "b1": 0, "b2": 0, "b3": 0, "b4": 0}
+    bkt_series = df["LAN_BKT"].astype(int)
+    return {
+        "b0": len(df[bkt_series == 0]), 
+        "b1": len(df[bkt_series == 1]), 
+        "b2": len(df[bkt_series == 2]), 
+        "b3": len(df[bkt_series == 3]), 
+        "b4": len(df[bkt_series >= 4])
+    }
 def generate_exposure_plotly(df: pd.DataFrame, product_selection: str):
     if product_selection == "[ SHOW ALL PRODUCTS ]":
         summary = df.groupby("LAN_PDT")["EXPOSURE_POS"].sum().reset_index()
@@ -125,7 +136,7 @@ def generate_exposure_plotly(df: pd.DataFrame, product_selection: str):
     fig.update_layout(title={"text": f"<b>{title}</b>", "y": 0.95, "x": 0.5, "xanchor": "center"}, showlegend=False, margin=dict(t=60, b=20, l=20, r=20), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
     return fig
 
-def generate_audit_pdf(target_id: str, row_dict: dict, allocation_strategy: str) -> bytes:
+def generate_audit_pdf(target_id: str, row_dict: dict, allocation_strategy: str = "MONITORING LOG") -> bytes:
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
     story = []
@@ -157,7 +168,7 @@ def generate_audit_pdf(target_id: str, row_dict: dict, allocation_strategy: str)
         [Paragraph("Contractual Monthly EMI:", cell_label_style), Paragraph(f"₹{emi:,}", cell_value_style), Paragraph("Arrears Principal Balance:", cell_label_style), Paragraph(f"₹{safe_convert(row_dict.get('LAN_INST_OV_AMT', 0)):,}", cell_value_style)],
         [Paragraph("Days Past Due (LAN_DPD):", cell_label_style), Paragraph(f"{dpd} Days (Bucket {bkt})", cell_value_style), Paragraph("Late Presentation Penalty Fees:", cell_label_style), Paragraph(f"₹{safe_convert(row_dict.get('OVERDUE_CHARGE', 0)):,}", cell_value_style)]
     ]
-    t = Table(sect_data, colWidths=[140, 120, 130, 140])
+    t = Table(sect_data, colWidths=[130, 130, 130, 130])
     t.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'LEFT'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('BOTTOMPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 4), ('LINEBELOW', (0,0), (-1,-1), 0.5, colors.HexColor("#e2e8f0"))]))
     story.append(t)
     
