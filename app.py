@@ -270,7 +270,11 @@ with right_panel:
     if base_df.empty: 
         st.info("⚠️ No data available to plot chart analysis.")
     else: 
-        st.plotly_chart(engine.generate_exposure_plotly(base_df, product_dropdown), width="stretch")
+        # FIXED: Replaced invalid width argument with standard responsive container property
+        st.plotly_chart(
+            engine.generate_exposure_plotly(base_df, product_dropdown), 
+            use_container_width=True
+        )
 
 # =============================================================================
 # --- 7. ABSOLUTE LAST LINE OF APP.PY (GUARANTEED EXECUTING IN BOTH STATES) ---
