@@ -54,7 +54,6 @@ def generate_exposure_plotly(df: pd.DataFrame, product_selection: str):
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
     )
     return fig
-
 def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
     """Generates a professional executive-ready PDF audit report using ReportLab."""
     buffer = BytesIO()
@@ -83,7 +82,7 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
         'AlertValue', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=9, textColor=colors.HexColor("#c0392b")
     )
 
-    story.append(Paragraph("CREDITPULSE AI — SYSTEM LEDZA AUDIT REPORT", title_style))
+    story.append(Paragraph("CREDITPULSE AI — SYSTEM LEDGER AUDIT REPORT", title_style))
     story.append(Paragraph(f"<b>Account Identification Key:</b> {target_id}", cell_value_style))
     story.append(Spacer(1, 10))
     
@@ -97,7 +96,7 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
             return 0
 
     def create_section_table(data_matrix):
-        # FIXED: colWidths array restored to prevent structural crash
+        """Assembles structured grid lines formatting for data displays."""
         t = Table(data_matrix, colWidths=[140, 120, 140, 120])
         t.setStyle(TableStyle([
             ('ALIGN', (0,0), (-1,-1), 'LEFT'),
@@ -113,18 +112,20 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
     bkt = safe_numeric_convert(row_dict.get('LAN_BKT', 0))
     dpd = safe_numeric_convert(row_dict.get('LAN_DPD', 0))
 
-    # DYNAMIC LOGIC: Automatically calculate the blank columns using the basic data
+    # DYNAMIC LOGIC: Automatically calculate missing parameters out of base figures
     calculated_overdue_principal = emi * bkt
     calculated_late_fees = 0 if dpd == 0 else (300 if dpd <= 30 else (800 if dpd <= 60 else (1200 if dpd <= 90 else 2500)))
 
+    # SECTION 1: Sourcing & Identification Parameters
     story.append(Paragraph("1. Sourcing & Identification Parameters", section_style))
     sect1_data = [
-        [Paragraph("Product Group (LAN_PDT):", cell_label_style), Paragraph(str(row_dict.get('LAN_PDT', '')), cell_value_style), Paragraph("Module Category:", cell_label_style), Paragraph(str(row_dict.get('MODULE', '')), cell_value_style)],
-        [Paragraph("Customer Name:", cell_label_style), Paragraph(str(row_dict.get('CUSTOMERNAME', '')), cell_value_style), Paragraph("Loan Account No:", cell_label_style), Paragraph(str(row_dict.get('LOAN_NO', '')), cell_value_style)],
-        [Paragraph("Original Disbursal Date:", cell_label_style), Paragraph(str(row_dict.get('DISB_DATE', '')), cell_value_style), Paragraph("Disbursed Principal:", cell_label_style), Paragraph(f"₹{safe_numeric_convert(row_dict.get('LAN_DISB_AMT', 0)):,}", cell_value_style)]
+        [Paragraph("Product Group (LAN_PDT):", cell_label_style), Paragraph(str(row_dict.get('LAN_PDT', ''))), Paragraph("Module Category:", cell_label_style), Paragraph(str(row_dict.get('MODULE', '')))],
+        [Paragraph("Customer Name:", cell_label_style), Paragraph(str(row_dict.get('CUSTOMERNAME', ''))), Paragraph("Loan Account No:", cell_label_style), Paragraph(str(row_dict.get('LOAN_NO', '')))],
+        [Paragraph("Original Disbursal Date:", cell_label_style), Paragraph(str(row_dict.get('DISB_DATE', ''))), Paragraph("Disbursed Principal:", cell_label_style), Paragraph(f"₹{safe_numeric_convert(row_dict.get('LAN_DISB_AMT', 0)):,}", cell_value_style)]
     ]
     story.append(create_section_table(sect1_data))
     
+    # SECTION 2: Collateral Asset Verification Parameters
     doc_make = str(row_dict.get('MAKE', ''))
     doc_model = str(row_dict.get('MODEL', ''))
     doc_reg = str(row_dict.get('REGDNUM', ''))
@@ -136,22 +137,39 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
     ]
     story.append(create_section_table(sect2_data))
     
+    # SECTION 3: Monthly Billing & Active Balances
     story.append(Paragraph("3. Monthly Billing & Active Balances", section_style))
     sect3_data = [
-        [Paragraph("Gateway Presentation Mode:", cell_label_style), Paragraph(str(row_dict.get('REPAY_MODE', '')), cell_value_style), Paragraph("Loan Scheduled EMI:", cell_label_style), Paragraph(f"₹{emi:,}", cell_value_style)],
+        [Paragraph("Gateway Presentation Mode:", cell_label_style), Paragraph(str(row_dict.get('REPAY_MODE', ''))), Paragraph("Loan Scheduled EMI:", cell_label_style), Paragraph(f"₹{emi:,}", cell_value_style)],
         [Paragraph("Principal Bal (LAN_POS):", cell_label_style), Paragraph(f"₹{safe_numeric_convert(row_dict.get('LAN_POS', 0)):,}", cell_value_style), Paragraph("Total Exposure POS Risk:", cell_label_style), Paragraph(f"₹{safe_numeric_convert(row_dict.get('EXPOSURE_POS', 0)):,}", cell_value_style)]
     ]
     story.append(create_section_table(sect3_data))
     
+    # SECTION 4: Delinquency Buckets & Field Allocations
     story.append(Paragraph("4. Delinquency Buckets & Field Allocations", section_style))
     sect4_data = [
         [Paragraph("Days Past Due (LAN_DPD):", cell_label_style), Paragraph(f"{dpd} Days", alert_value_style), Paragraph("Risk Bucket:", cell_label_style), Paragraph(f"Bucket {bkt}", cell_value_style)],
         [Paragraph("Total Overdue Principal:", cell_label_style), Paragraph(f"₹{calculated_overdue_principal:,}", cell_value_style), Paragraph("Late Presentation Fees:", cell_label_style), Paragraph(f"₹{calculated_late_fees:,}", cell_value_style)],
-        [Paragraph("Assigned Agency ID Desk:", cell_label_style), Paragraph(str(row_dict.get('FINAL_ALLO_ID', '')), cell_value_style), Paragraph("Field Action Response:", cell_label_style), Paragraph(str(row_dict.get('RESPONSE_CODE_NEW', '')), cell_value_style)],
-        [Paragraph("NPA Status Code:", cell_label_style), Paragraph(str(row_dict.get('NPA_TYPE', '')), cell_value_style), Paragraph("Account Writeoff Status:", cell_label_style), Paragraph(str(row_dict.get('WRITEOFF_TAG', '')), cell_value_style)]
+        [Paragraph("Assigned Agency ID Desk:", cell_label_style), Paragraph(str(row_dict.get('FINAL_ALLO_ID', 'NA'))), Paragraph("Field Action Response Code:", cell_label_style), Paragraph(str(row_dict.get('RESPONSE_CODE_NEW', 'NA')))],
+        [Paragraph("NPA Status Code:", cell_label_style), Paragraph(str(row_dict.get('NPA_TYPE', 'NA'))), Paragraph("Account Writeoff Status:", cell_label_style), Paragraph(str(row_dict.get('WRITEOFF_TAG', 'NA')))]
     ]
     story.append(create_section_table(sect4_data))
     
+    # SECTION 5: Playbook Directives & Strategy Rules Layout
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("5. Official Mandated Playbook Strategy Directive", section_style))
+    
+    strategies = {
+        0: "MONITORING LOG: Account is currently standard. Continue normal presentation drops.",
+        1: "DIGITAL REMINDER INTERVENTION: Missed current cycle payment date (1-30 DPD). Deploy automated outreach pipelines via SMS, WhatsApp, and interactive voice response drops.",
+        2: "TELE-CALLING ESCALATION: 31-60 DPD tier reach. Route directly to soft card tele-calling queues for balance configuration layout options.",
+        3: "FIELD VISIT ENGAGEMENT: 61-90 DPD tier reach. Dispatch localized field collections team to arrange property visit profiles.",
+        4: "LIQUIDATION PROCEEDINGS: Hard recovery NPA trigger. Route directly to liquidation desk asset auction workflow channels."
+    }
+    directive_text = strategies.get(bkt, "REVIEW OPERATIONAL LEDGER: Asset logic pools boundary out of spec.")
+    story.append(Paragraph(directive_text, cell_value_style))
+    
+    # Render canvas loop and capture system byte allocations
     doc.build(story)
     buffer.seek(0)
     return buffer.getvalue()
