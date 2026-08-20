@@ -7,7 +7,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
-# Define the complete 108-Header Master Schema Blueprint
+# Complete Master Schema Blueprint Tracking Grid Setup
 MASTER_108_HEADERS = [
     "UCIC", "LOAN_NO", "CUSTOMERNAME", "REPAY_MODE", "UCIC_EMI", "LOAN_EMI", "UCIC_INST_OVD_AMT", 
     "LAN_INST_OV_AMT", "ADDL_INTEREST", "BCC_DUE", "OVERDUE_CHARGE", "UCIC_POS", "LAN_POS", 
@@ -28,50 +28,52 @@ MASTER_108_HEADERS = [
 ]
 
 def transform_25_to_108_ledger(raw_df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Takes a 25-header raw asset file and transforms it into the standardized
-    108-header schema using dynamic engine math calculations.
-    """
+    """Takes a 25-header raw asset upload and builds out the missing 83 target fields automatically."""
     if raw_df is None or raw_df.empty:
         return pd.DataFrame(columns=MASTER_108_HEADERS)
     
-    # 1. Initialize a matching length dataframe with the complete 108 structural layout
+    # 1. Initialize empty data columns structure matching master ledger template guidelines
     processed_df = pd.DataFrame(index=raw_df.index, columns=MASTER_108_HEADERS)
     
-    # 2. Map existing shared columns from the uploaded raw file automatically
+    # 2. Map overlapping metrics found in original csv file
     for col in raw_df.columns:
         if col in processed_df.columns:
             processed_df[col] = raw_df[col]
             
-    # 3. Handle base structural definitions safely
+    # 3. Dynamic row-indexing fallback key generation if CUST(#) is completely null
+    if "CUST(#)" not in raw_df.columns or raw_df["CUST(#)"].isna().all():
+        if "UCIC" in raw_df.columns:
+            processed_df["CUST(#)"] = raw_df["UCIC"].astype(str).str.extract(r'(\d+)').fillna(0).astype(int)
+        else:
+            processed_df["CUST(#)"] = range(1, len(raw_df) + 1)
+
+    # 4. Strict numeric baseline type conversion 
     processed_df["LOAN_EMI"] = pd.to_numeric(processed_df["LOAN_EMI"], errors="coerce").fillna(0).astype(int)
     processed_df["LAN_BKT"] = pd.to_numeric(processed_df["LAN_BKT"], errors="coerce").fillna(0).astype(int)
     processed_df["LAN_DPD"] = pd.to_numeric(processed_df["LAN_DPD"], errors="coerce").fillna(0).astype(int)
 
-    # 4. ENGINE MATH LAYER: Perform matrix array calculations across blank fields
-    # Field 1 (Actual Sourced Data): Total Overdue Principal row resolution
+    # 5. AUTOMATED GENERATION ENGINE LAYER: Map calculations over the missing 83 slots
     processed_df["LAN_INST_OV_AMT"] = processed_df["LAN_INST_OV_AMT"].fillna(processed_df["LOAN_EMI"] * processed_df["LAN_BKT"])
-    
-    # Field 2 (Engine Created Data): Dynamic Late Presentation Fees resolution
     processed_df["OVERDUE_CHARGE"] = processed_df.apply(
         lambda r: 0 if r["LAN_DPD"] == 0 else (
-            300 if r["LAN_DPD"] <= 30 else (
-                800 if r["LAN_DPD"] <= 60 else (
-                    1200 if r["LAN_DPD"] <= 90 else 2500
-                )
-            )
+            300 if r["LAN_DPD"] <= 30 else (800 if r["LAN_DPD"] <= 60 else (1200 if r["LAN_DPD"] <= 90 else 2500))
         ), axis=1
     )
 
-    # 5. Populate remaining non-calculated downstream columns with fallback placeholders
-    text_placeholders = ["WRITEOFF_TAG", "NPA_TYPE", "MODULE", "FINAL_ALLO_ID", "RESPONSE_CODE_NEW"]
-    for col in text_placeholders:
-        processed_df[col] = processed_df[col].fillna("STANDARD_OFFICIAL_RECORD")
-        
-    # FIXED: Replaced 'c' variable naming mismatch with 'col' to clear the compilation bug
-    numeric_placeholders = [col for col in MASTER_108_HEADERS if processed_df[col].isna().all()]
-    for col in numeric_placeholders:
-        processed_df[col] = processed_df[col].fillna(0)
+    # 6. Initialize historical tracking arrays fallback data configurations
+    historical_text_blocks = ["RESPONSE_CODE_May26", "RESPONSE_CODE_Apr26", "RESPONSE_CODE_Mar26", "RESPONSE_CODE_Feb26", "RESPONSE_CODE_Jan26"]
+    for col in historical_text_blocks:
+        processed_df[col] = processed_df[col].fillna("OK")
+
+    # Final sweep loop across any leftover unpopulated operational slot segments
+    for col in MASTER_108_HEADERS:
+        if processed_df[col].isna().all() or processed_df[col].isnull().all():
+            if col in ["WRITEOFF_TAG", "NPA_TYPE", "MODULE", "FINAL_ALLO_ID", "RESPONSE_CODE_NEW"]:
+                processed_df[col] = processed_df[col].fillna("STANDARD")
+            elif "DATE" in col or "MAKEDATE" in col:
+                processed_df[col] = processed_df[col].fillna("2026-08-20")
+            else:
+                processed_df[col] = processed_df[col].fillna(0)
 
     return processed_df
 
@@ -107,48 +109,23 @@ def generate_exposure_plotly(df: pd.DataFrame, product_selection: str):
         names_col = "BKT_NAME"
         title = f"Full 5-Stage Capital Exposure Distribution — {product_selection}"
 
-    fig = px.pie(
-        summary, values="EXPOSURE_POS", names=names_col,
-        color=names_col, color_discrete_map=color_map, hole=0.4
-    )
-    fig.update_traces(
-        textinfo="percent+label", textposition="outside",
-        hovertemplate="<b>%{label}</b><br>Exposure: ₹%{value:,.0f}<br>% Share: %{percent}"
-    )
-    fig.update_layout(
-        title={"text": f"<b>{title}</b>", "y": 0.95, "x": 0.5, "xanchor": "center"},
-        showlegend=False, margin=dict(t=60, b=20, l=20, r=20),
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
-    )
+    fig = px.pie(summary, values="EXPOSURE_POS", names=names_col, color=names_col, color_discrete_map=color_map, hole=0.4)
+    fig.update_traces(textinfo="percent+label", textposition="outside", hovertemplate="<b>%{label}</b><br>Exposure: ₹%{value:,.0f}<br>% Share: %{percent}")
+    fig.update_layout(title={"text": f"<b>{title}</b>", "y": 0.95, "x": 0.5, "xanchor": "center"}, showlegend=False, margin=dict(t=60, b=20, l=20, r=20), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
     return fig
 
 def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
     """Generates a professional executive-ready PDF audit report using ReportLab."""
     buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer, pagesize=letter,
-        rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40
-    )
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
     story = []
     styles = getSampleStyleSheet()
     
-    title_style = ParagraphStyle(
-        'DocTitle', parent=styles['Heading1'], fontName='Helvetica-Bold', fontSize=20,
-        textColor=colors.HexColor("#1e3c72"), spaceAfter=15, alignment=1
-    )
-    section_style = ParagraphStyle(
-        'SectionHeading', parent=styles['Heading2'], fontName='Helvetica-Bold', fontSize=12,
-        textColor=colors.HexColor("#2a5298"), spaceBefore=12, spaceAfter=6
-    )
-    cell_label_style = ParagraphStyle(
-        'CellLabel', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=9, textColor=colors.HexColor("#4a5568")
-    )
-    cell_value_style = ParagraphStyle(
-        'CellValue', parent=styles['Normal'], fontName='Helvetica', fontSize=9, textColor=colors.HexColor("#1a202c")
-    )
-    alert_value_style = ParagraphStyle(
-        'AlertValue', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=9, textColor=colors.HexColor("#c0392b")
-    )
+    title_style = ParagraphStyle('DocTitle', parent=styles['Heading1'], fontName='Helvetica-Bold', fontSize=20, textColor=colors.HexColor("#1e3c72"), spaceAfter=15, alignment=1)
+    section_style = ParagraphStyle('SectionHeading', parent=styles['Heading2'], fontName='Helvetica-Bold', fontSize=12, textColor=colors.HexColor("#2a5298"), spaceBefore=12, spaceAfter=6)
+    cell_label_style = ParagraphStyle('CellLabel', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=9, textColor=colors.HexColor("#4a5568"))
+    cell_value_style = ParagraphStyle('CellValue', parent=styles['Normal'], fontName='Helvetica', fontSize=9, textColor=colors.HexColor("#1a202c"))
+    alert_value_style = ParagraphStyle('AlertValue', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=9, textColor=colors.HexColor("#c0392b"))
 
     story.append(Paragraph("CREDITPULSE AI — 108-HEADER COMPLIANCE AUDIT REPORT", title_style))
     story.append(Paragraph(f"<b>Account Identification Key:</b> {target_id}", cell_value_style))
@@ -163,7 +140,7 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
             return 0
 
     def create_section_table(data_matrix):
-        t = Table(data_matrix, colWidths=[140, 120, 140, 120])
+        t = Table(data_matrix, colWidths=)
         t.setStyle(TableStyle([
             ('ALIGN', (0,0), (-1,-1), 'LEFT'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
@@ -177,11 +154,10 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
     bkt = safe_numeric_convert(row_dict.get('LAN_BKT', 0))
     dpd = safe_numeric_convert(row_dict.get('LAN_DPD', 0))
     
-    # Sourced directly from transformed dataset calculations
     actual_overdue_principal = safe_numeric_convert(row_dict.get('LAN_INST_OV_AMT', 0))
     calculated_late_fees = safe_numeric_convert(row_dict.get('OVERDUE_CHARGE', 0))
 
-    # SECTION 1
+    # Section 1
     story.append(Paragraph("1. Sourcing & Identification Parameters", section_style))
     sect1_data = [
         [Paragraph("Product Group (LAN_PDT):", cell_label_style), Paragraph(str(row_dict.get('LAN_PDT', '')), cell_value_style), Paragraph("Module Category:", cell_label_style), Paragraph(str(row_dict.get('MODULE', '')), cell_value_style)],
@@ -190,35 +166,16 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
     ]
     story.append(create_section_table(sect1_data))
     
-    # ==============================================================================
-    # SECTION 2: Collateral Asset Verification Parameters (UPPERCASE MAP FIXED)
-    # ==============================================================================
+    # Section 2
     story.append(Paragraph("2. Collateral Asset Verification Parameters", section_style))
-    
-    # Force absolute uppercase extraction to align with Source 3 DataFrame schema columns
-    doc_make = str(row_dict.get('MAKE', '')).strip()
-    doc_model = str(row_dict.get('MODEL', '')).strip()
-    doc_reg = str(row_dict.get('REGDNUM', '')).strip()
-    
-    # Extract structural flag layout parameters cleanly
-    flag_hl = str(row_dict.get('HL_NONHL', 'NON_HL')).strip()
-    flag_lap = str(row_dict.get('LAP_NONLAP', 'NON_LAP')).strip()
-    
-    # Sanitize fallbacks against empty inputs or parsed lowercase/uppercase 'nan' markers
-    clean_make = "NONE" if doc_make == "" or doc_make.lower() == 'nan' else doc_make
-    clean_model = "NONE" if doc_model == "" or doc_model.lower() == 'nan' else doc_model
-    clean_reg = "NONE" if doc_reg == "" or doc_reg.lower() == 'nan' else doc_reg
-    clean_flags = f"{flag_hl} | {flag_lap}"
-
+    doc_make, doc_model, doc_reg = str(row_dict.get('MAKE', '')), str(row_dict.get('MODEL', '')), str(row_dict.get('REGDNUM', ''))
     sect2_data = [
-        [Paragraph("Make / Restructuring:", cell_label_style), Paragraph(clean_make, cell_value_style), 
-         Paragraph("Asset Model / Segment:", cell_label_style), Paragraph(clean_model, cell_value_style)],
-        [Paragraph("Registration Refs (REGDNUM):", cell_label_style), Paragraph(clean_reg, cell_value_style), 
-         Paragraph("HL / LAP Flags:", cell_label_style), Paragraph(clean_flags, cell_value_style)]
+        [Paragraph("Make / Restructuring:", cell_label_style), Paragraph(doc_make if doc_make.strip() != "" and doc_make.lower() != 'nan' else "NONE", cell_value_style), Paragraph("Asset Model / Segment:", cell_label_style), Paragraph(doc_model if doc_model.strip() != "" and doc_model.lower() != 'nan' else "NONE", cell_value_style)],
+        [Paragraph("Registration Refs (REGDNUM):", cell_label_style), Paragraph(doc_reg if doc_reg.strip() != "" and doc_reg.lower() != 'nan' else "NONE", cell_value_style), Paragraph("HL / LAP Flags:", cell_label_style), Paragraph(f"{row_dict.get('HL_NONHL','')} | {row_dict.get('LAP_NONLAP','')}", cell_value_style)]
     ]
     story.append(create_section_table(sect2_data))
     
-    # SECTION 3
+    # Section 3
     story.append(Paragraph("3. Monthly Billing & Active Balances", section_style))
     sect3_data = [
         [Paragraph("Gateway Presentation Mode:", cell_label_style), Paragraph(str(row_dict.get('REPAY_MODE', '')), cell_value_style), Paragraph("Loan Scheduled EMI:", cell_label_style), Paragraph(f"₹{emi:,}", cell_value_style)],
@@ -226,7 +183,7 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
     ]
     story.append(create_section_table(sect3_data))
     
-    # SECTION 4
+    # Section 4
     story.append(Paragraph("4. Delinquency Buckets & Field Allocations", section_style))
     sect4_data = [
         [Paragraph("Days Past Due (LAN_DPD):", cell_label_style), Paragraph(f"{dpd} Days", alert_value_style), Paragraph("Risk Bucket:", cell_label_style), Paragraph(f"Bucket {bkt}", cell_value_style)],
@@ -236,7 +193,7 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
     ]
     story.append(create_section_table(sect4_data))
     
-    # SECTION 5
+    # Section 5
     story.append(Spacer(1, 10))
     story.append(Paragraph("5. Official Mandated Playbook Strategy Directive", section_style))
     strategies = {
