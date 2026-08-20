@@ -87,6 +87,15 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
     story.append(Paragraph(f"<b>Account Identification Key:</b> {target_id}", cell_value_style))
     story.append(Spacer(1, 10))
     
+    def safe_numeric_convert(val) -> int:
+        """Helper to convert blank cells or NaN into zero safely."""
+        if pd.isna(val) or str(val).strip() == '':
+            return 0
+        try:
+            return int(float(val))
+        except (ValueError, TypeError):
+            return 0
+
     def create_section_table(data_matrix):
         t = Table(data_matrix, colWidths=[140, 120, 140, 120])
         t.setStyle(TableStyle([
@@ -105,15 +114,19 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
         [Paragraph("Customer Name:", cell_label_style), Paragraph(str(row_dict.get('CUSTOMERNAME', '')), cell_value_style),
          Paragraph("Loan Account No:", cell_label_style), Paragraph(str(row_dict.get('LOAN_NO', '')), cell_value_style)],
         [Paragraph("Original Disbursal Date:", cell_label_style), Paragraph(str(row_dict.get('DISB_DATE', '')), cell_value_style),
-         Paragraph("Disbursed Principal:", cell_label_style), Paragraph(f"₹{int(row_dict.get('LAN_DISB_AMT', 0)):,}", cell_value_style)]
+         Paragraph("Disbursed Principal:", cell_label_style), Paragraph(f"₹{safe_numeric_convert(row_dict.get('LAN_DISB_AMT', 0)):,}", cell_value_style)]
     ]
     story.append(create_section_table(sect1_data))
     
+    doc_make = str(row_dict.get('MAKE', ''))
+    doc_model = str(row_dict.get('MODEL', ''))
+    doc_reg = str(row_dict.get('REGDNUM', ''))
+    
     story.append(Paragraph("2. Collateral Asset Verification Parameters", section_style))
     sect2_data = [
-        [Paragraph("Make / Restructuring:", cell_label_style), Paragraph(str(row_dict.get('MAKE', '')), cell_value_style),
-         Paragraph("Asset Model / Segment:", cell_label_style), Paragraph(str(row_dict.get('MODEL', '')), cell_value_style)],
-        [Paragraph("Registration Refs (REGDNUM):", cell_label_style), Paragraph(str(row_dict.get('REGDNUM', '')), cell_value_style),
+        [Paragraph("Make / Restructuring:", cell_label_style), Paragraph(doc_make if doc_make.strip() != "" else "NONE", cell_value_style),
+         Paragraph("Asset Model / Segment:", cell_label_style), Paragraph(doc_model if doc_model.strip() != "" else "NONE", cell_value_style)],
+        [Paragraph("Registration Refs (REGDNUM):", cell_label_style), Paragraph(doc_reg if doc_reg.strip() != "" else "NONE", cell_value_style),
          Paragraph("HL / LAP Flags:", cell_label_style), Paragraph(f"{row_dict.get('HL_NONHL','')} | {row_dict.get('LAP_NONLAP','')}", cell_value_style)]
     ]
     story.append(create_section_table(sect2_data))
@@ -121,18 +134,18 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
     story.append(Paragraph("3. Monthly Billing & Active Balances", section_style))
     sect3_data = [
         [Paragraph("Gateway Presentation Mode:", cell_label_style), Paragraph(str(row_dict.get('REPAY_MODE', '')), cell_value_style),
-         Paragraph("Loan Scheduled EMI:", cell_label_style), Paragraph(f"₹{int(row_dict.get('LOAN_EMI', 0)):,}", cell_value_style)],
-        [Paragraph("Principal Bal (LAN_POS):", cell_label_style), Paragraph(f"₹{int(row_dict.get('LAN_POS', 0)):,}", cell_value_style),
-         Paragraph("Total Exposure POS Risk:", cell_label_style), Paragraph(f"₹{int(row_dict.get('EXPOSURE_POS', 0)):,}", cell_value_style)]
+         Paragraph("Loan Scheduled EMI:", cell_label_style), Paragraph(f"₹{safe_numeric_convert(row_dict.get('LOAN_EMI', 0)):,}", cell_value_style)],
+        [Paragraph("Principal Bal (LAN_POS):", cell_label_style), Paragraph(f"₹{safe_numeric_convert(row_dict.get('LAN_POS', 0)):,}", cell_value_style),
+         Paragraph("Total Exposure POS Risk:", cell_label_style), Paragraph(f"₹{safe_numeric_convert(row_dict.get('EXPOSURE_POS', 0)):,}", cell_value_style)]
     ]
     story.append(create_section_table(sect3_data))
     
     story.append(Paragraph("4. Delinquency Buckets & Field Allocations", section_style))
     sect4_data = [
-        [Paragraph("Days Past Due (LAN_DPD):", cell_label_style), Paragraph(f"{row_dict.get('LAN_DPD', 0)} Days", alert_value_style),
-         Paragraph("Risk Bucket:", cell_label_style), Paragraph(f"Bucket {row_dict.get('LAN_BKT', 0)}", cell_value_style)],
-        [Paragraph("Total Overdue Principal:", cell_label_style), Paragraph(f"₹{int(float(row_dict.get('LAN_INST_OV_AMT'))) if pd.notna(row_dict.get('LAN_INST_OV_AMT')) and str(row_dict.get('LAN_INST_OV_AMT')).strip() != '' else 0:,}", cell_value_style)],
-         Paragraph("Late Presentation Fees:", cell_label_style), Paragraph(f"₹{int(float(row_dict.get('OVERDUE_CHARGE'))) if pd.notna(row_dict.get('OVERDUE_CHARGE')) and str(row_dict.get('OVERDUE_CHARGE')).strip() != '' else 0:,}", cell_value_style)],
+        [Paragraph("Days Past Due (LAN_DPD):", cell_label_style), Paragraph(f"{safe_numeric_convert(row_dict.get('LAN_DPD', 0))} Days", alert_value_style),
+         Paragraph("Risk Bucket:", cell_label_style), Paragraph(f"Bucket {str(row_dict.get('LAN_BKT', 0))}", cell_value_style)],
+        [Paragraph("Total Overdue Principal:", cell_label_style), Paragraph(f"₹{safe_numeric_convert(row_dict.get('LAN_INST_OV_AMT', 0)):,}", cell_value_style),
+         Paragraph("Late Presentation Fees:", cell_label_style), Paragraph(f"₹{safe_numeric_convert(row_dict.get('OVERDUE_CHARGE', 0)):,}", cell_value_style)],
         [Paragraph("Assigned Agency ID Desk:", cell_label_style), Paragraph(str(row_dict.get('FINAL_ALLO_ID', '')), cell_value_style),
          Paragraph("Field Action Response:", cell_label_style), Paragraph(str(row_dict.get('RESPONSE_CODE_NEW', '')), cell_value_style)],
         [Paragraph("NPA Status Code:", cell_label_style), Paragraph(str(row_dict.get('NPA_TYPE', '')), cell_value_style),
