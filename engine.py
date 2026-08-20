@@ -68,7 +68,8 @@ def transform_25_to_108_ledger(raw_df: pd.DataFrame) -> pd.DataFrame:
     for col in text_placeholders:
         processed_df[col] = processed_df[col].fillna("STANDARD_OFFICIAL_RECORD")
         
-    numeric_placeholders = [c for col in MASTER_108_HEADERS if processed_df[col].isna().all()]
+    # FIXED: Replaced 'c' variable naming mismatch with 'col' to clear the compilation bug
+    numeric_placeholders = [col for col in MASTER_108_HEADERS if processed_df[col].isna().all()]
     for col in numeric_placeholders:
         processed_df[col] = processed_df[col].fillna(0)
 
