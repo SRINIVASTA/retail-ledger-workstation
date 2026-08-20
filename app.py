@@ -180,90 +180,90 @@ with left_panel:
                 
                 st.subheader(f"🛡️ Audit Inspector Panel: {target_id}")
                 
-                # --------------------------------------------------------------
-                # EXECUTIVE REPORT HEADER GENERATION (DECOUPLED ROUTE)
-                # --------------------------------------------------------------
-                # Pulls parameters safely out from the external module dependency
-                b_code, b_class, b_playbook = collections_engine.LoanCollectionsReportEngine.generate_audit_bucket_metadata(row_slice)
-                
-                st.markdown("##### 🏛️ Risk Regulatory Status Report")
-                
-                # Clean, non-interactive audit counters
-                col_b1, col_b2 = st.columns(2)
-                col_b1.metric("Regulatory Bucket Code", b_code)
-                col_b2.metric("Portfolio Risk Tier", b_class)
-                
-                # Immutable operational directive field block
-                st.text_area(
-                    label="Official Mandated Playbook Strategy Directive:",
-                    value=b_playbook,
-                    height=100,
-                    disabled=True,
-                    help="Immutable policy directives governed by core risk compliance rule sets."
-                )
-                st.markdown("---")
-                # --------------------------------------------------------------
-                
-                st.markdown("##### 🏷️ Sourcing & Identification Parameters")
-                st.write(f"**Product Group (LAN_PDT):** {row_slice.get('LAN_PDT', '')}")
-                st.write(f"**Module Category:** {row_slice.get('MODULE', '')}")
-                st.write(f"**Customer Name:** {row_slice.get('CUSTOMERNAME', '')}")
-                st.write(f"**Loan Account No:** {row_slice.get('LOAN_NO', '')}")
-                st.write(f"**Original Disbursal Date:** {row_slice.get('DISB_DATE', '')}")
-                
-                try:
-                    disb_amt = int(float(row_slice.get('LAN_DISB_AMT', 0)))
-                    st.write(f"**Disbursed Principal:** ₹{disb_amt:,}")
-                except:
-                    st.write(f"**Disbursed Principal:** ₹{row_slice.get('LAN_DISB_AMT', 0)}")
-                    
-                st.markdown("### 🏠 Collateral Asset Verification Parameters")
-                st.write(f"**Make / Restructuring:** {selected_row.get('MAKE', 'NONE')}")
-                st.write(f"**Asset Model / Segment:** {selected_row.get('MODEL', 'NONE')}")
-                st.write(f"**Registration Refs (REGDNUM):** {selected_row.get('REGDNUM', 'NONE')}")
-                st.write(f"**HL / LAP Flags:** {selected_row.get('HL_NONHL', 'NON_HL')} | {selected_row.get('LAP_NONLAP', 'NON_LAP')}")
+# ==============================================================================
+# EXECUTIVE REPORT INSPECTION & RENDER PIPELINE (SYNCHRONIZED)
+# ==============================================================================
+# Pulls parameters safely out from the external module dependency
+b_code, b_class, b_playbook = collections_engine.LoanCollectionsReportEngine.generate_audit_bucket_metadata(row_slice)
 
-                st.markdown("##### 💳 Monthly Billing & Active Balances")
-                st.write(f"**Gateway Presentation Mode:** {row_slice.get('REPAY_MODE', '')}")
-                
-                try:
-                    st.write(f"**Loan Scheduled EMI:** ₹{int(float(row_slice.get('LOAN_EMI', 0))):,}")
-                    st.write(f"**Principal Bal (LAN_POS):** ₹{int(float(row_slice.get('LAN_POS', 0))):,}")
-                    st.write(f"**Total Exposure POS Risk:** ₹{int(float(row_slice.get('EXPOSURE_POS', 0))):,}")
-                except:
-                    st.write(f"**Loan Scheduled EMI:** ₹{row_slice.get('LOAN_EMI', 0)}")
-                    st.write(f"**Principal Bal (LAN_POS):** ₹{row_slice.get('LAN_POS', 0)}")
-                    st.write(f"**Total Exposure POS Risk:** ₹{row_slice.get('EXPOSURE_POS', 0)}")
-                
-                st.markdown("##### 🚨 Delinquency Buckets & Field Allocations")
-                st.error(f"**Days Past Due (LAN_DPD):** {row_slice.get('LAN_DPD', 0)} Days")
-                st.write(f"**Risk Bucket:** Bucket {row_slice.get('LAN_BKT', 0)}")
-                
-                try:
-                    st.write(f"**Total Overdue Principal:** ₹{int(float(row_slice.get('LAN_INST_OV_AMT', 0))):,}")
-                    st.write(f"**Late Presentation Fees:** ₹{int(float(row_slice.get('OVERDUE_CHARGE', 0))):,}")
-                except:
-                    st.write(f"**Total Overdue Principal:** ₹{row_slice.get('LAN_INST_OV_AMT', 0)}")
-                    st.write(f"**Late Presentation Fees:** ₹{row_slice.get('OVERDUE_CHARGE', 0)}")
-                    
-                st.write(f"**Assigned Agency ID Desk:** {row_slice.get('FINAL_ALLO_ID', '')}")
-                st.write(f"**Field Action Response Code:** {row_slice.get('RESPONSE_CODE_NEW', '')}")
-                st.write(f"**NPA Status Code:** {row_slice.get('NPA_TYPE', '')}")
-                st.write(f"**Account Writeoff Status:** {row_slice.get('WRITEOFF_TAG', '')}")
-                
-                st.markdown("---")
-                st.markdown("##### 📥 Export Official Records")
-                
-                pdf_payload = engine.generate_audit_pdf(target_id, row_slice)
-                
-                st.download_button(
-                    label="Download Executive PDF Audit Report",
-                    data=pdf_payload,
-                    file_name=f"Audit_Report_{target_id}.pdf",
-                    mime="application/pdf",
-                    type="primary",
-                    width="stretch"
-                )
+st.markdown("##### 🏛️ Risk Regulatory Status Report")
+
+# Clean, non-interactive audit counters
+col_b1, col_b2 = st.columns(2)
+col_b1.metric("Regulatory Bucket Code", b_code)
+col_b2.metric("Portfolio Risk Tier", b_class)
+
+# Immutable operational directive field block
+st.text_area(
+    label="Official Mandated Playbook Strategy Directive:",
+    value=b_playbook,
+    height=100,
+    disabled=True,
+    help="Immutable policy directives governed by core risk compliance rule sets."
+)
+st.markdown("---")
+
+st.markdown("##### 🏷️ Sourcing & Identification Parameters")
+st.write(f"**Product Group (LAN_PDT):** {row_slice.get('LAN_PDT', '')}")
+st.write(f"**Module Category:** {row_slice.get('MODULE', '')}")
+st.write(f"**Customer Name:** {row_slice.get('CUSTOMERNAME', '')}")
+st.write(f"**Loan Account No:** {row_slice.get('LOAN_NO', '')}")
+st.write(f"**Original Disbursal Date:** {row_slice.get('DISB_DATE', '')}")
+
+try:
+    disb_amt = int(float(row_slice.get('LAN_DISB_AMT', 0)))
+    st.write(f"**Disbursed Principal:** ₹{disb_amt:,}")
+except:
+    st.write(f"**Disbursed Principal:** ₹{row_slice.get('LAN_DISB_AMT', 0)}")
+    
+# FIXED: Shifted source references from selected_row over to row_slice to eliminate NameError crashes
+st.markdown("### 🏠 Collateral Asset Verification Parameters")
+st.write(f"**Make / Restructuring:** {row_slice.get('MAKE', 'NONE')}")
+st.write(f"**Asset Model / Segment:** {row_slice.get('MODEL', 'NONE')}")
+st.write(f"**Registration Refs (REGDNUM):** {row_slice.get('REGDNUM', 'NONE')}")
+st.write(f"**HL / LAP Flags:** {row_slice.get('HL_NONHL', 'NON_HL')} | {row_slice.get('LAP_NONLAP', 'NON_LAP')}")
+
+st.markdown("##### 💳 Monthly Billing & Active Balances")
+st.write(f"**Gateway Presentation Mode:** {row_slice.get('REPAY_MODE', '')}")
+
+try:
+    st.write(f"**Loan Scheduled EMI:** ₹{int(float(row_slice.get('LOAN_EMI', 0))):,}")
+    st.write(f"**Principal Bal (LAN_POS):** ₹{int(float(row_slice.get('LAN_POS', 0))):,}")
+    st.write(f"**Total Exposure POS Risk:** ₹{int(float(row_slice.get('EXPOSURE_POS', 0))):,}")
+except:
+    st.write(f"**Loan Scheduled EMI:** ₹{row_slice.get('LOAN_EMI', 0)}")
+    st.write(f"**Principal Bal (LAN_POS):** ₹{row_slice.get('LAN_POS', 0)}")
+    st.write(f"**Total Exposure POS Risk:** ₹{row_slice.get('EXPOSURE_POS', 0)}")
+
+st.markdown("##### 🚨 Delinquency Buckets & Field Allocations")
+st.error(f"**Days Past Due (LAN_DPD):** {row_slice.get('LAN_DPD', 0)} Days")
+st.write(f"**Risk Bucket:** Bucket {row_slice.get('LAN_BKT', 0)}")
+
+try:
+    st.write(f"**Total Overdue Principal:** ₹{int(float(row_slice.get('LAN_INST_OV_AMT', 0))):,}")
+    st.write(f"**Late Presentation Fees:** ₹{int(float(row_slice.get('OVERDUE_CHARGE', 0))):,}")
+except:
+    st.write(f"**Total Overdue Principal:** ₹{row_slice.get('LAN_INST_OV_AMT', 0)}")
+    st.write(f"**Late Presentation Fees:** ₹{row_slice.get('OVERDUE_CHARGE', 0)}")
+    
+st.write(f"**Assigned Agency ID Desk:** {row_slice.get('FINAL_ALLO_ID', '')}")
+st.write(f"**Field Action Response Code:** {row_slice.get('RESPONSE_CODE_NEW', '')}")
+st.write(f"**NPA Status Code:** {row_slice.get('NPA_TYPE', '')}")
+st.write(f"**Account Writeoff Status:** {row_slice.get('WRITEOFF_TAG', '')}")
+
+st.markdown("---")
+st.markdown("##### 📥 Export Official Records")
+
+pdf_payload = engine.generate_audit_pdf(target_id, row_slice)
+
+st.download_button(
+    label="Download Executive PDF Audit Report",
+    data=pdf_payload,
+    file_name=f"Audit_Report_{target_id}.pdf",
+    mime="application/pdf",
+    type="primary",
+    use_container_width=True # FIXED: Replaced invalid ReportLab 'width' parameter with st.download_button container alignment flag
+)
 
 with right_panel:
     st.markdown("### 📊 Reconciled Capital Exposure Share Frame")
