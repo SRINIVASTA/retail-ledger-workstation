@@ -131,8 +131,8 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
     sect4_data = [
         [Paragraph("Days Past Due (LAN_DPD):", cell_label_style), Paragraph(f"{row_dict.get('LAN_DPD', 0)} Days", alert_value_style),
          Paragraph("Risk Bucket:", cell_label_style), Paragraph(f"Bucket {row_dict.get('LAN_BKT', 0)}", cell_value_style)],
-        [Paragraph("Total Overdue Principal:", cell_label_style), Paragraph(f"₹{int(row_dict.get('LAN_INST_OV_AMT', 0)):,}", cell_value_style),
-         Paragraph("Late Presentation Fees:", cell_label_style), Paragraph(f"₹{int(row_dict.get('OVERDUE_CHARGE', 0)):,}", cell_value_style)],
+        [Paragraph("Total Overdue Principal:", cell_label_style), Paragraph(f"₹{int(float(row_dict.get('LAN_INST_OV_AMT'))) if pd.notna(row_dict.get('LAN_INST_OV_AMT')) and str(row_dict.get('LAN_INST_OV_AMT')).strip() != '' else 0:,}", cell_value_style)],
+         Paragraph("Late Presentation Fees:", cell_label_style), Paragraph(f"₹{int(float(row_dict.get('OVERDUE_CHARGE'))) if pd.notna(row_dict.get('OVERDUE_CHARGE')) and str(row_dict.get('OVERDUE_CHARGE')).strip() != '' else 0:,}", cell_value_style)],
         [Paragraph("Assigned Agency ID Desk:", cell_label_style), Paragraph(str(row_dict.get('FINAL_ALLO_ID', '')), cell_value_style),
          Paragraph("Field Action Response:", cell_label_style), Paragraph(str(row_dict.get('RESPONSE_CODE_NEW', '')), cell_value_style)],
         [Paragraph("NPA Status Code:", cell_label_style), Paragraph(str(row_dict.get('NPA_TYPE', '')), cell_value_style),
