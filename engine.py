@@ -107,13 +107,16 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
         ]))
         return t
 
-    # Gather required baseline numbers for arithmetic operations
+    # Gather data and parameters directly from your dataset columns
     emi = safe_numeric_convert(row_dict.get('LOAN_EMI', 0))
     bkt = safe_numeric_convert(row_dict.get('LAN_BKT', 0))
     dpd = safe_numeric_convert(row_dict.get('LAN_DPD', 0))
-
-    # DYNAMIC LOGIC REMEDIATION: Force dynamic engine parsing to eliminate all raw NaN bugs
-    calculated_overdue_principal = emi * bkt
+    
+    # HYBRID SELECTION PARSING
+    # 1. First Field = Actual Data sourced directly out of the row dictionary row array
+    actual_overdue_principal = safe_numeric_convert(row_dict.get('LAN_INST_OV_AMT', 0))
+    
+    # 2. Second Field = Created dynamically by the calculation logic matrix pool rules
     calculated_late_fees = 0 if dpd == 0 else (300 if dpd <= 30 else (800 if dpd <= 60 else (1200 if dpd <= 90 else 2500)))
 
     # SECTION 1: Sourcing & Identification Parameters
@@ -149,7 +152,7 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
     story.append(Paragraph("4. Delinquency Buckets & Field Allocations", section_style))
     sect4_data = [
         [Paragraph("Days Past Due (LAN_DPD):", cell_label_style), Paragraph(f"{dpd} Days", alert_value_style), Paragraph("Risk Bucket:", cell_label_style), Paragraph(f"Bucket {bkt}", cell_value_style)],
-        [Paragraph("Total Overdue Principal:", cell_label_style), Paragraph(f"₹{calculated_overdue_principal:,}", cell_value_style), Paragraph("Late Presentation Fees:", cell_label_style), Paragraph(f"₹{calculated_late_fees:,}", cell_value_style)],
+        [Paragraph("Total Overdue Principal (Actual):", cell_label_style), Paragraph(f"₹{actual_overdue_principal:,}", cell_value_style), Paragraph("Late Presentation Fees (Calculated):", cell_label_style), Paragraph(f"₹{calculated_late_fees:,}", cell_value_style)],
         [Paragraph("Assigned Agency ID Desk:", cell_label_style), Paragraph(str(row_dict.get('FINAL_ALLO_ID', 'NA')), cell_value_style), Paragraph("Field Action Response Code:", cell_label_style), Paragraph(str(row_dict.get('RESPONSE_CODE_NEW', 'NA')), cell_value_style)],
         [Paragraph("NPA Status Code:", cell_label_style), Paragraph(str(row_dict.get('NPA_TYPE', 'NA')), cell_value_style), Paragraph("Account Writeoff Status:", cell_label_style), Paragraph(str(row_dict.get('WRITEOFF_TAG', 'NA')), cell_value_style)]
     ]
