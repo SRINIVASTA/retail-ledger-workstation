@@ -86,7 +86,28 @@ if omni_search_box:
         base_df["CUSTOMERNAME"].astype(str).str.upper().str.contains(q, na=False)
     ]
 
-# 3. GLOBAL BINDING EXPORT: Reassign your active workspace tracking variable
+# 3. DYNAMIC CSV AUTO-GENERATOR PIPELINE (Placed directly below Omni Search Filter)
+if not base_df.empty:
+    st.sidebar.markdown("##### 🗃️ Master Compliance Ledger Export")
+    
+    # Compile dataframe memory array straight into a localized CSV byte-stream
+    from io import BytesIO
+    csv_buffer = BytesIO()
+    base_df.to_csv(csv_buffer, index=False, encoding='utf-8')
+    csv_bytes = csv_buffer.getvalue()
+    
+    st.sidebar.download_button(
+        label="📥 Download Expanded 108-Header CSV",
+        data=csv_bytes,
+        file_name="Expanded_Master_Ledger_108_Headers.csv",
+        mime="text/csv",
+        use_container_width=True,
+        help="Export the fully populated 108-column schema spreadsheet containing engine math calculations."
+    )
+else:
+    st.sidebar.warning("⚠️ No records match active filters to compile CSV generation output.")
+
+# 4. GLOBAL BINDING EXPORT: Reassign your active workspace tracking variable
 # Ensure that your downstream variable (e.g., filtered_df) evaluates ONLY this subset
 filtered_df = base_df
 
@@ -118,7 +139,6 @@ if run_diagnostics:
         st.sidebar.error(f"Execution Error: Missing testing dependencies in requirements.txt. Details: {e}")
 else:
     st.sidebar.caption("💤 Diagnostics system idle. Check the box above to verify asset logic pools.")
-
 # ==============================================================================
 # MAIN DASHBOARD METRICS DISPLAY
 # ==============================================================================
