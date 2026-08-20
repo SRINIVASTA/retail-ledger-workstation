@@ -70,14 +70,25 @@ product_options = ["[ SHOW ALL PRODUCTS ]", "PERSONAL_LOAN", "CREDIT_CARD", "VEH
 product_dropdown = st.sidebar.selectbox("Product Category:", product_options, index=0)
 omni_search_box = st.sidebar.text_input("Omni Search Filter:", placeholder="Type name, UCIC ID, or loan file number...").strip()
 
-base_df = portfolio_df if product_dropdown == "[ SHOW ALL PRODUCTS ]" else portfolio_df[portfolio_df["LAN_PDT"] == product_dropdown]
+# 1. Isolate target product selection frame 
+if product_dropdown == "[ SHOW ALL PRODUCTS ]":
+    base_df = portfolio_df.copy()
+else:
+    # Explicit type casting string matching to secure absolute matrix separation
+    base_df = portfolio_df[portfolio_df["LAN_PDT"].astype(str) == str(product_dropdown)]
+
+# 2. Layer global character search boundaries across active slices
 if omni_search_box:
     q = omni_search_box.upper()
     base_df = base_df[
-        base_df["UCIC"].str.upper().str.contains(q, na=False) |
-        base_df["LOAN_NO"].str.upper().str.contains(q, na=False) |
-        base_df["CUSTOMERNAME"].str.upper().str.contains(q, na=False)
+        base_df["UCIC"].astype(str).str.upper().str.contains(q, na=False) |
+        base_df["LOAN_NO"].astype(str).str.upper().str.contains(q, na=False) |
+        base_df["CUSTOMERNAME"].astype(str).str.upper().str.contains(q, na=False)
     ]
+
+# 3. GLOBAL BINDING EXPORT: Reassign your active workspace tracking variable
+# Ensure that your downstream variable (e.g., filtered_df) evaluates ONLY this subset
+filtered_df = base_df
 
 # ==============================================================================
 # SIDEBAR DIAGNOSTICS CONTROL PANEL 
