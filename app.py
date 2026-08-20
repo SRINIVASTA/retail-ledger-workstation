@@ -217,12 +217,12 @@ with left_panel:
                 except:
                     st.write(f"**Disbursed Principal:** ₹{row_slice.get('LAN_DISB_AMT', 0)}")
                     
-                st.markdown("##### 🏠 Collateral Asset Verification Parameters")
-                st.write(f"**Make / Restructuring:** {row_slice.get('MAKE', '')}")
-                st.write(f"**Asset Model / Segment:** {row_slice.get('MODEL', '')}")
-                st.write(f"**Registration Refs (REGDNUM):** {row_slice.get('REGDNUM', '')}")
-                st.write(f"**HL / LAP Flags:** {row_slice.get('HL_NONHL', '')} | {row_slice.get('LAP_NONLAP', '')}")
-                
+                st.markdown("### 🏠 Collateral Asset Verification Parameters")
+                st.write(f"**Make / Restructuring:** {selected_row.get('MAKE', 'NONE')}")
+                st.write(f"**Asset Model / Segment:** {selected_row.get('MODEL', 'NONE')}")
+                st.write(f"**Registration Refs (REGDNUM):** {selected_row.get('REGDNUM', 'NONE')}")
+                st.write(f"**HL / LAP Flags:** {selected_row.get('HL_NONHL', 'NON_HL')} | {selected_row.get('LAP_NONLAP', 'NON_LAP')}")
+
                 st.markdown("##### 💳 Monthly Billing & Active Balances")
                 st.write(f"**Gateway Presentation Mode:** {row_slice.get('REPAY_MODE', '')}")
                 
