@@ -1,6 +1,27 @@
 import pandas as pd
 import streamlit as st
 import engine
+import logging 
+
+
+# --- 3. FORCE STREAMLIT CHROMIUM HIDING LAYERS & GAP FIX ---
+st.markdown(""" 
+ <style> 
+ header[data-testid="stHeader"] { visibility: hidden !important; display: none !important; } 
+ div[data-testid="stToolbar"] { visibility: hidden !important; display: none !important; } 
+ footer { visibility: hidden !important; } 
+ 
+ [data-testid="stMainBlockContainer"] {
+     padding-top: 1rem !important;
+ }
+ .main .block-container {
+     padding-top: 1rem !important;
+ }
+ </style> 
+ """, unsafe_allow_html=True) 
+
+logging.basicConfig(level=logging.INFO) 
+logger = logging.getLogger("FIREWALL") 
 
 st.set_page_config(
     page_title="CreditPulse AI Workstation",
@@ -236,3 +257,54 @@ with right_panel:
         st.info("⚠️ No data available to plot chart analysis.")
     else: 
         st.plotly_chart(engine.generate_exposure_plotly(base_df, product_dropdown), width="stretch")
+
+# =============================================================================
+# --- 7. ABSOLUTE LAST LINE OF APP.PY (GUARANTEED EXECUTING IN BOTH STATES) ---
+# =============================================================================
+st.markdown( 
+ """ 
+ <style> 
+ .footer { 
+     position: fixed; 
+     left: 0; 
+     bottom: 0; 
+     width: 100%; 
+     background-color: #262730; 
+     color: #FAFAFA; 
+     text-align: center; 
+     font-size: 13px; 
+     padding: 12px 0; 
+     z-index: 9999999 !important; 
+     border-top: 1px solid #FF4B4B; 
+ } 
+ .footer a { 
+     color: #FF4B4B; 
+     text-decoration: none; 
+     margin: 0 10px; 
+     font-weight: bold; 
+ } 
+ .footer a:hover { 
+     text-decoration: underline; 
+     color: #FAFAFA; 
+ } 
+ .footer-separator { 
+     color: #666; 
+     margin: 0 5px; 
+ } 
+ [data-testid="stMainBlockContainer"] { 
+     padding-bottom: 120px !important; 
+ } 
+ .main .block-container {
+     padding-bottom: 120px !important;
+ }
+ </style> 
+ <div class="footer"> 
+     <span><strong>© 2026 T A Srinivas.</strong> All Rights Reserved. Prototype for portfolio display. For commercial licensing requests, please use the contact channels.</span> 
+     <span class="footer-separator">|</span> 
+     <a href="https://www.linkedin.com/in/srinivas-t-a-557637119/" target="_blank">LinkedIn Profile</a> 
+     <span class="footer-separator">|</span> 
+     <a href="mailto:tasrinivass@gmail.com">Contact Me</a> 
+ </div> 
+ """, 
+ unsafe_allow_html=True 
+)
