@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 from io import BytesIO
+from datetime import datetime
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -28,28 +29,25 @@ MASTER_108_HEADERS = [
 ]
 
 def transform_25_to_108_ledger(raw_df: pd.DataFrame) -> pd.DataFrame:
-    """Takes a raw file and dynamically populates matching UCIC/LAN parameters."""
+    """Takes a raw file and dynamically handles UCIC mappings alongside monthly vintage deltas."""
     if raw_df is None or raw_df.empty:
         return pd.DataFrame(columns=MASTER_108_HEADERS)
     
-    # 1. Initialize full master schema layout matching footprint
     processed_df = pd.DataFrame(index=raw_df.index, columns=MASTER_108_HEADERS)
     
-    # 2. Extract present columns from spreadsheet stream
     for col in raw_df.columns:
         if col in processed_df.columns:
             processed_df[col] = raw_df[col]
             
-    # 3. Numeric Baseline Cast Framework (Clears floating point artifacts)
+    # Numeric Baseline Cast Framework
     numeric_targets = ["LOAN_EMI", "LAN_BKT", "LAN_DPD", "LAN_POS", "EXPOSURE_POS", "LAN_DISB_AMT"]
     for col in numeric_targets:
         processed_df[col] = pd.to_numeric(processed_df[col], errors="coerce").fillna(0).astype(int)
 
-    # 4. Sourcing key extraction to ensure 'CUST(#)' parameter is never left blank
     if "CUST(#)" not in raw_df.columns or processed_df["CUST(#)"].fillna(0).astype(int).sum() == 0:
         processed_df["CUST(#)"] = processed_df["UCIC"].astype(str).str.extract(r'(\d+)').fillna(7000).astype(int)
 
-    # 5. Core Overdue Calculations
+    # Core Overdue Calculations
     processed_df["LAN_INST_OV_AMT"] = processed_df.apply(
         lambda r: int(float(r["LAN_INST_OV_AMT"])) if (pd.notna(r["LAN_INST_OV_AMT"]) and float(r["LAN_INST_OV_AMT"]) > 0)
         else int(r["LOAN_EMI"] * r["LAN_BKT"]), axis=1
@@ -61,21 +59,43 @@ def transform_25_to_108_ledger(raw_df: pd.DataFrame) -> pd.DataFrame:
     )
 
     # ==============================================================================
-    # 🎯 SYNCHRONIZED ARCHITECTURE: FORCE UCIC == LAN EQUALITY MAPPING
+    # 🎯 SYNCHRONIZED EQUALITY & BUCKET DESK ALLOCATION MAPPING
     # ==============================================================================
     processed_df["UCIC_EMI"] = processed_df["LOAN_EMI"]
     processed_df["UCIC_INST_OVD_AMT"] = processed_df["LAN_INST_OV_AMT"]
     processed_df["UCIC_POS"] = processed_df["LAN_POS"]
     processed_df["UCIC_PDT"] = processed_df["LAN_PDT"]
     processed_df["UCIC_DISB_AMT"] = processed_df["LAN_DISB_AMT"]
-    
-    # Synchronize Downstream Structural Risk DPD Arrays
     processed_df["UCIC_DPD"] = processed_df["LAN_DPD"]
+    
+    # Enforced Variable Sync
     processed_df["UCIC_BUCKET"] = processed_df["LAN_BKT"]
-    processed_df["UCIC_DISB_AMT"] = processed_df["LAN_DISB_AMT"]
+    processed_df["FINAL_POCKET"] = "BKT_" + processed_df["LAN_BKT"].astype(str)
     # ==============================================================================
 
-    # 6. Sanitize strings and character attributes
+    # ==============================================================================
+    # 📆 DATEDIFF VINTAGE CALCULATION ENGINE LAYER (CURRENT EPOCH: AUGUST 2026)
+    # ==============================================================================
+    current_date = datetime(2026, 8, 20)
+    
+    # Dynamic Date Field Processing with explicit fallbacks
+    def calculate_month_diff(date_val, fallback_months=24):
+        if pd.isna(date_val) or str(date_val).strip() in ["", "nan", "NONE"]:
+            return fallback_months
+        try:
+            parsed_date = pd.to_datetime(date_val, errors='coerce')
+            if pd.isna(parsed_date):
+                return fallback_months
+            return (current_date.year - parsed_date.year) * 12 + (current_date.month - parsed_date.month)
+        except:
+            return fallback_months
+
+    # Sourcing dates from base parameters if onboarding date columns are unavailable
+    processed_df["UCIC_VINTAGE"] = processed_df["DISB_DATE"].apply(lambda d: calculate_month_diff(d, fallback_months=26))
+    processed_df["UCIC_SUB_VINTAGE"] = processed_df["CYCLE_DATE"].apply(lambda d: calculate_month_diff(d, fallback_months=14))
+    # ==============================================================================
+
+    # Sanitize string parameter outputs
     text_placeholders = ["MAKE", "MODEL", "SUBMODEL", "REGDNUM", "WRITEOFF_TAG", "NPA_TYPE", "MODULE", "FINAL_ALLO_ID", "RESPONSE_CODE_NEW"]
     for col in text_placeholders:
         processed_df[col] = processed_df[col].astype(str).str.replace(".0", "", regex=False).str.strip()
@@ -92,7 +112,7 @@ def transform_25_to_108_ledger(raw_df: pd.DataFrame) -> pd.DataFrame:
     return processed_df
 
 def compute_bucket_counts(df: pd.DataFrame) -> dict:
-    """Calculates row counts across all 5 delinquency stages safely."""
+    """Calculates ledger metrics across delinquency tiers safely."""
     if df is None or df.empty:
         return {"b0": 0, "b1": 0, "b2": 0, "b3": 0, "b4": 0}
     bkt_series = df["LAN_BKT"].astype(int)
@@ -154,8 +174,7 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
             return 0
 
     def create_section_table(data_matrix):
-        # FIXED: Enforced a rigid, standard, 4-column cell dimensions framework layout array
-        t = Table(data_matrix, colWidths=[130, 130, 130, 130])
+        t = Table(data_matrix, colWidths=)
         t.setStyle(TableStyle([
             ('ALIGN', (0,0), (-1,-1), 'LEFT'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
