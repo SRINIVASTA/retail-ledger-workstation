@@ -190,14 +190,31 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
     ]
     story.append(create_section_table(sect1_data))
     
-    # SECTION 2
+    # ==============================================================================
+    # SECTION 2: Collateral Asset Verification Parameters (UPPERCASE MAP FIXED)
+    # ==============================================================================
     story.append(Paragraph("2. Collateral Asset Verification Parameters", section_style))
-    doc_make = str(row_dict.get('MAKE', ''))
-    doc_model = str(row_dict.get('MODEL', ''))
-    doc_reg = str(row_dict.get('REGDNUM', ''))
+    
+    # Force absolute uppercase extraction to align with Source 3 DataFrame schema columns
+    doc_make = str(row_dict.get('MAKE', '')).strip()
+    doc_model = str(row_dict.get('MODEL', '')).strip()
+    doc_reg = str(row_dict.get('REGDNUM', '')).strip()
+    
+    # Extract structural flag layout parameters cleanly
+    flag_hl = str(row_dict.get('HL_NONHL', 'NON_HL')).strip()
+    flag_lap = str(row_dict.get('LAP_NONLAP', 'NON_LAP')).strip()
+    
+    # Sanitize fallbacks against empty inputs or parsed lowercase/uppercase 'nan' markers
+    clean_make = "NONE" if doc_make == "" or doc_make.lower() == 'nan' else doc_make
+    clean_model = "NONE" if doc_model == "" or doc_model.lower() == 'nan' else doc_model
+    clean_reg = "NONE" if doc_reg == "" or doc_reg.lower() == 'nan' else doc_reg
+    clean_flags = f"{flag_hl} | {flag_lap}"
+
     sect2_data = [
-        [Paragraph("Make / Restructuring:", cell_label_style), Paragraph(doc_make if doc_make.strip() != "" and doc_make.lower() != 'nan' else "NONE", cell_value_style), Paragraph("Asset Model / Segment:", cell_label_style), Paragraph(doc_model if doc_model.strip() != "" and doc_model.lower() != 'nan' else "NONE", cell_value_style)],
-        [Paragraph("Registration Refs (REGDNUM):", cell_label_style), Paragraph(doc_reg if doc_reg.strip() != "" and doc_reg.lower() != 'nan' else "NONE", cell_value_style), Paragraph("HL / LAP Flags:", cell_label_style), Paragraph(f"{row_dict.get('HL_NONHL','')} | {row_dict.get('LAP_NONLAP','')}", cell_value_style)]
+        [Paragraph("Make / Restructuring:", cell_label_style), Paragraph(clean_make, cell_value_style), 
+         Paragraph("Asset Model / Segment:", cell_label_style), Paragraph(clean_model, cell_value_style)],
+        [Paragraph("Registration Refs (REGDNUM):", cell_label_style), Paragraph(clean_reg, cell_value_style), 
+         Paragraph("HL / LAP Flags:", cell_label_style), Paragraph(clean_flags, cell_value_style)]
     ]
     story.append(create_section_table(sect2_data))
     
