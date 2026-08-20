@@ -151,18 +151,20 @@ def generate_exposure_plotly(df: pd.DataFrame, product_selection: str):
 def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
     """Generates a professional executive-ready PDF audit report using ReportLab."""
     buffer = BytesIO()
+    # Letter size width is 612 pt. Margins are 40 + 40 = 80 pt. Printable canvas = 532 pt.
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
     story = []
     styles = getSampleStyleSheet()
     
-    title_style = ParagraphStyle('DocTitle', parent=styles['Heading1'], fontName='Helvetica-Bold', fontSize=18, textColor=colors.HexColor("#1e3c72"), spaceAfter=15, alignment=1)
+    title_style = ParagraphStyle('DocTitle', parent=styles['Heading1'], fontName='Helvetica-Bold', fontSize=16, textColor=colors.HexColor("#1e3c72"), spaceAfter=15, alignment=1)
     section_style = ParagraphStyle('SectionHeading', parent=styles['Heading2'], fontName='Helvetica-Bold', fontSize=11, textColor=colors.HexColor("#2a5298"), spaceBefore=10, spaceAfter=4)
     cell_label_style = ParagraphStyle('CellLabel', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8, textColor=colors.HexColor("#4a5568"))
     cell_value_style = ParagraphStyle('CellValue', parent=styles['Normal'], fontName='Helvetica', fontSize=8, textColor=colors.HexColor("#1a202c"))
     alert_value_style = ParagraphStyle('AlertValue', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8, textColor=colors.HexColor("#c0392b"))
+    strategy_style = ParagraphStyle('StrategyText', parent=styles['Normal'], fontName='Helvetica-Oblique', fontSize=9, leading=13, textColor=colors.HexColor("#2d3748"))
 
     story.append(Paragraph("CREDITPULSE AI — 108-HEADER COMPLIANCE AUDIT REPORT", title_style))
-    story.append(Paragraph(f"<b>Account Identification Key:</b> {target_id}", cell_value_style))
+    story.append(Paragraph(f"<b>Account Identification Key (UCIC):</b> {target_id}", cell_value_style))
     story.append(Spacer(1, 10))
     
     def safe_numeric_convert(val) -> int:
@@ -174,7 +176,8 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
             return 0
 
     def create_section_table(data_matrix):
-        t = Table(data_matrix, colWidths=)
+        # FIXED: Distributed 532pt canvas width perfectly across 4 columns (Labels: 130pt, Values: 136pt)
+        t = Table(data_matrix, colWidths=[130, 136, 130, 136])
         t.setStyle(TableStyle([
             ('ALIGN', (0,0), (-1,-1), 'LEFT'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
@@ -230,18 +233,24 @@ def generate_audit_pdf(target_id: str, row_dict: dict) -> bytes:
     story.append(create_section_table(sect4_data))
     
     # Section 5
-    story.append(Spacer(1, 5))
+    story.append(Spacer(1, 8))
     story.append(Paragraph("5. Official Mandated Playbook Strategy Directive", section_style))
-    strategies = {
-        0: "MONITORING LOG: Account is currently standard. Continue normal presentation drops.",
-        1: "DIGITAL REMINDER INTERVENTION: Missed current cycle payment date (1-30 DPD). Deploy automated outreach pipelines via SMS, WhatsApp, and interactive voice response drops.",
-        2: "TELE-CALLING ESCALATION: 31-60 DPD tier reach. Route directly to soft card tele-calling queues for balance configuration layout options.",
-        3: "FIELD VISIT ENGAGEMENT: 61-90 DPD tier reach. Dispatch localized field collections team to arrange property visit profiles.",
-        4: "LIQUIDATION PROCEEDINGS: Hard recovery NPA trigger. Route directly to liquidation desk asset auction workflow channels."
-    }
-    directive_text = strategies.get(bkt, "REVIEW OPERATIONAL LEDGER: Asset logic pools boundary out of spec.")
-    story.append(Paragraph(directive_text, cell_value_style))
     
+    # FIXED: Completed the full closed map dictionary and added structural string fallbacks
+    strategies = {
+        0: "MONITORING LOG: Account is currently standard. Continue normal automated payment gateway drops.",
+        1: "DIGITAL REMINDER INTERVENTION: Missed current cycle payment date (1-30 DPD). Deploy automated outreach pipelines via SMS, WhatsApp, and interactive voice response drops.",
+        2: "TELE-CALLING ESCALATION: 31-60 DPD tier reach. Route directly to soft collections calling queues for balance configuration layout options.",
+        3: "FIELD VISIT FORCE ALLOCATION: High risk delinquency zone (61-90 DPD). Dispatch ground recovery agents for mandatory physical verification and documentation collection.",
+        4: "CRITICAL RECOVERY / LEGAL ACTION: Extreme risk breach (90+ DPD). Cease administrative lines and dispatch formal legal notifications for repossession or asset arbitration."
+    }
+    
+    # Get strategy text dynamically based on asset bucket, defaulting to bucket 4 legal lines if out of bounds
+    selected_strategy = strategies.get(bkt, strategies[4])
+    story.append(Paragraph(selected_strategy, strategy_style))
+    
+    # Render and compile layout document
     doc.build(story)
-    buffer.seek(0)
-    return buffer.getvalue()
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+    return pdf_bytes
