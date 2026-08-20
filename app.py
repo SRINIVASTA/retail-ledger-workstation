@@ -63,7 +63,7 @@ if portfolio_df is None:
     st.stop()
 
 # ==============================================================================
-# INTERACTIVE CORES & FILTERS PIPELINE
+# INTERACTIVE CORES & FILTERS PIPELINE (MASTER CSV EXPORT ISOLATED)
 # ==============================================================================
 st.sidebar.markdown("### 🎯 Step 2: Workspace Filtering")
 product_options = ["[ SHOW ALL PRODUCTS ]", "PERSONAL_LOAN", "CREDIT_CARD", "VEHICLE_LOAN", "HOME_LOAN", "GOLD_LOAN", "LAP"]
@@ -86,14 +86,14 @@ if omni_search_box:
         base_df["CUSTOMERNAME"].astype(str).str.upper().str.contains(q, na=False)
     ]
 
-# 3. DYNAMIC CSV AUTO-GENERATOR PIPELINE (Placed directly below Omni Search Filter)
-if not base_df.empty:
+# 3. UNFILTERED CSV AUTO-GENERATOR PIPELINE (Exports ALL 1000 rows at all times)
+if not portfolio_df.empty:
     st.sidebar.markdown("##### 🗃️ Master Compliance Ledger Export")
     
-    # Compile dataframe memory array straight into a localized CSV byte-stream
+    # FIXED: Sourced from portfolio_df to ensure all 1000 converted rows export completely
     from io import BytesIO
     csv_buffer = BytesIO()
-    base_df.to_csv(csv_buffer, index=False, encoding='utf-8')
+    portfolio_df.to_csv(csv_buffer, index=False, encoding='utf-8')
     csv_bytes = csv_buffer.getvalue()
     
     st.sidebar.download_button(
@@ -102,13 +102,13 @@ if not base_df.empty:
         file_name="Expanded_Master_Ledger_108_Headers.csv",
         mime="text/csv",
         use_container_width=True,
-        help="Export the fully populated 108-column schema spreadsheet containing engine math calculations."
+        help="Export the complete un-filtered 108-column schema spreadsheet containing all 1,000 ledger rows."
     )
 else:
-    st.sidebar.warning("⚠️ No records match active filters to compile CSV generation output.")
+    st.sidebar.warning("⚠️ No records found in base ledger memory storage.")
 
 # 4. GLOBAL BINDING EXPORT: Reassign your active workspace tracking variable
-# Ensure that your downstream variable (e.g., filtered_df) evaluates ONLY this subset
+# This keeps your on-screen UI dropdowns and metrics responsive to user filters
 filtered_df = base_df
 
 # ==============================================================================
