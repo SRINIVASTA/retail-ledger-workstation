@@ -7,7 +7,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
 class DocumentAuditFactory:
-    """Generates official compliance PDF structures from transactional customer row frames."""
+    """Generates official compliance PDF structures from customer profile details."""
 
     @staticmethod
     def generate_audit_pdf(target_id: str, row_dict: dict, allocation_strategy: str) -> bytes:
