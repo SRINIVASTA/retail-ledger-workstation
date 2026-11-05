@@ -5,19 +5,19 @@ from core.transformations import PortfolioTransformer
 
 @pytest.fixture
 def mock_blank_fields_data():
-    """Generates a structurally complete mock dataframe with empty targets to validate fallback behavior."""
+    """Generates a structurally complete mock dataframe with default testing arrays to validate fallback behavior."""
     data = {
         "UCIC": ["CUST_TEST_01", "CUST_TEST_02"],
         "CUSTOMERNAME": ["Aarav Sharma", "Aditya Rao"],
         "LOAN_NO": ["LN-PL-101", "LN-HL-301"],
         "LAN_PDT": ["PERSONAL_LOAN", "HOME_LOAN"],
         "DISB_DATE": ["12-04-2024", "11-01-2022"],
-        "LAN_DISB_AMT":,          # 🟢 FIXED: Fully populated array values
-        "LOAN_EMI":,                  # 🟢 FIXED: Fully populated array values
-        "LAN_DPD":,                           # 🟢 FIXED: Fully populated array values
+        "LAN_DISB_AMT":,
+        "LOAN_EMI":,
+        "LAN_DPD":,
         "REPAY_MODE": ["ACH", "AUTO_DEBIT"],
         "BRANCH_DESC": ["MUMBAI_FORT", "BANGALORE_WHITEFIELD"],
-        "SOLID":,                        # 🟢 FIXED: Fully populated array values
+        "SOLID":,
         "MODULE": ["", "nan"],
         "STATE": [None, ""],
         "RCLG_ZONE": ["", None]
@@ -32,7 +32,7 @@ def test_automated_fallback_and_deductions(mock_blank_fields_data):
     assert processed.loc[0, "MODULE"] == "RETAIL_UNSECURED"
     assert processed.loc[1, "MODULE"] == "SECURED_MORTGAGES"
     
-    # 2. Continuous Delinquency Bracket Verification
+    # 2. Continuous Delinquency Bracket Verification (Bucket 4 for 95 DPD)
     assert int(processed.loc[0, "LAN_BKT"]) == 0
     assert int(processed.loc[1, "LAN_BKT"]) == 4
     
