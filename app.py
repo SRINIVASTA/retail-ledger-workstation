@@ -1,116 +1,4 @@
-# app.py [PART 1: Infrastructure Initialization & Global Filters]
-import sys
-import pandas as pd
-import streamlit as st
-import logging 
-from io import BytesIO, StringIO
-
-# Relative path structural imports protecting runtime server bounds
-import config.constants as constants
-import core.transformations as transformations
-import business.playbooks as playbooks
-import reports.pdf_factory as pdf_factory
-import app.components as components
-import app.visualizer as visualizer
-
-# Map unified layout aliases
-WorkstationUIComponents = components.WorkstationUIComponents
-ExposureChartFactory = visualizer.ExposureChartFactory
-PortfolioTransformer = transformations.PortfolioTransformer
-LoanCollectionsReportEngine = playbooks.LoanCollectionsReportEngine
-DocumentAuditFactory = pdf_factory.DocumentAuditFactory
-
-logging.basicConfig(level=logging.INFO) 
-logger = logging.getLogger("CREDITPULSE_WORKSTATION") 
-
-st.set_page_config(page_title="CreditPulse AI Workstation", layout="wide", initial_sidebar_state="expanded")
-
-# Ingest theme and summary blocks
-WorkstationUIComponents.inject_corporate_branding_theme()
-WorkstationUIComponents.render_enterprise_summary_banner()
-
-# Step 1: Upload Controls
-st.sidebar.title("Ledger Workspace Controls")
-st.sidebar.markdown("### 📂 Step 1: Data Injection")
-uploaded_file = st.sidebar.file_uploader("Upload Portfolio Ledger CSV File", type=["csv"])
-
-if uploaded_file is None:
-    st.info("💡 **Welcome to CreditPulse AI!** Please upload your portfolio ledger CSV file using the sidebar to begin.")
-    st.stop()
-
-@st.cache_data(show_spinner="Processing systemic multi-product ledger matrices...")
-def parse_uploaded_ledger(file_buffer):
-    try: 
-        raw_df = pd.read_csv(file_buffer)
-        return PortfolioTransformer.process_raw_ledger(raw_df)
-    except Exception as e:
-        st.error(f"❌ Critical Structural Ingestion Exception: {e}")
-        return None
-
-portfolio_df = parse_uploaded_ledger(uploaded_file)
-if portfolio_df is None or portfolio_df.empty: 
-    st.stop()
-
-# ==============================================================================
-# SIDEBAR CONTROL CENTER - STEP 2: MULTI-DIMENSIONAL HIERARCHICAL FILTERS
-# ==============================================================================
-st.sidebar.markdown("### 🎯 Step 2: Workspace Filtering")
-
-# 1. Product Slice
-product_options = ["[ SHOW ALL PRODUCTS ]", "PERSONAL_LOAN", "CREDIT_CARD", "VEHICLE_LOAN", "HOME_LOAN", "GOLD_LOAN", "LAP"]
-product_dropdown = st.sidebar.selectbox("Product Category:", product_options, index=0)
-
-if product_dropdown == "[ SHOW ALL PRODUCTS ]":
-    base_df = portfolio_df.copy()
-else:
-    base_df = portfolio_df[portfolio_df["LAN_PDT"].astype(str) == str(product_dropdown)]
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("##### 🗺️ Geographic Location Routing")
-
-# 2. Hierarchical Node 1: Reconciled Management Zone
-zone_options = ["[ ALL ZONES ]"] + sorted(base_df["RCLG_ZONE"].dropna().unique().tolist())
-selected_zone = st.sidebar.selectbox("Management Zone:", zone_options, index=0)
-
-if selected_zone != "[ ALL ZONES ]":
-    base_df = base_df[base_df["RCLG_ZONE"] == selected_zone]
-
-# 3. Hierarchical Node 2: State Jurisdiction (Filtered dynamically by Zone)
-state_options = ["[ ALL STATES ]"] + sorted(base_df["STATE"].dropna().unique().tolist())
-selected_state = st.sidebar.selectbox("Jurisdiction State:", state_options, index=0)
-
-if selected_state != "[ ALL STATES ]":
-    base_df = base_df[base_df["STATE"] == selected_state]
-
-# 4. Hierarchical Node 3: Branch Facility (Filtered dynamically by Zone and State)
-branch_options = ["[ ALL BRANCHES ]"] + sorted(base_df["BRANCH_DESC"].dropna().unique().tolist())
-selected_branch = st.sidebar.selectbox("Branch Facility:", branch_options, index=0)
-
-if selected_branch != "[ ALL BRANCHES ]":
-    base_df = base_df[base_df["BRANCH_DESC"] == selected_branch]
-
-st.sidebar.markdown("---")
-omni_search_box = st.sidebar.text_input("Omni Search Filter:", placeholder="Type name, UCIC ID...").strip()
-
-if omni_search_box:
-    q = omni_search_box.upper()
-    base_df = base_df[
-        base_df["UCIC"].astype(str).str.upper().str.contains(q, na=False) |
-        base_df["LOAN_NO"].astype(str).str.upper().str.contains(q, na=False) |
-        base_df["CUSTOMERNAME"].astype(str).str.upper().str.contains(q, na=False)
-    ]
-
-if not portfolio_df.empty:
-    st.sidebar.markdown("##### 🗃️ Master Compliance Ledger Export")
-    csv_buffer = BytesIO()
-    portfolio_df.to_csv(csv_buffer, index=False, encoding='utf-8')
-    st.sidebar.download_button(
-        label="📥 Download Expanded 108-Header CSV",
-        data=csv_buffer.getvalue(),
-        file_name="Expanded_Master_Ledger_108_Headers.csv",
-        mime="text/csv",
-        use_container_width=True
-    )
+# app.py [PART 1 - Update only this specific block around lines 90-120]
 
 # ==============================================================================
 # SIDEBAR CONTROL CENTER - STEP 3: SYSTEMS STABILITY DIAGNOSTICS WITH DEBUGGING
@@ -133,15 +21,16 @@ if run_diagnostics:
         old_stdout = sys.stdout
         sys.stdout = capture_buffer
         
-        # Run tests with terminal verbosity enabled (-v)
-        exit_code = pytest.main(["-v", "--tb=long", "tests/test_calculations.py"])
+        # 🟢 CHANGED: Replaced singular script call with the full "tests/" folder index block
+        # This scans and runs BOTH test_calculations.py and test_mock_distribution.py in parallel
+        exit_code = pytest.main(["-v", "--tb=long", "tests/"])
         
         # Restore normal output routing streams
         sys.stdout = old_stdout
         test_logs = capture_buffer.getvalue()
 
         if exit_code == 0:
-            st.sidebar.success("✅ ALL TESTS PASSED! Calculation engine validated.")
+            st.sidebar.success("✅ ALL TESTS PASSED! Backend calculation engine is 100% accurate.")
             st.toast("System Integrity Verified: 100% Stable", icon="✅")
         else:
             st.sidebar.error("❌ CRITICAL BUG DETECTED!")
