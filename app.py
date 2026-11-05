@@ -155,88 +155,88 @@ st.dataframe(base_df[available_cols], use_container_width=True, hide_index=True)
 left_panel, right_panel = st.columns(2)
 
 with left_panel:
-    st.markdown("### 🔍 108-Header Cross-Product Audit Inspector")
-    
-    if base_df.empty:
-        st.info("📂 Workspace filter arrays resulted in zero records. Adjust side menu constraints.")
-    else:
-        # Dynamically load customer identifiers based on selected active filters
-        available_ucics = sorted(base_df["UCIC"].dropna().unique().tolist())
-        target_id = st.selectbox(
-            "Select Active Customer UCIC Key to Inspect:", 
-            options=available_ucics,
-            help="Sourced dynamically from filtered workspace memory matrix."
-        )
+    # --- ENTERPRISE COLLAPSIBLE FOLDER WRAPPER ---
+    with st.expander("🔍 Open 108-Header Cross-Product Audit Inspector", expanded=False):
+        if base_df.empty:
+            st.info("📂 Workspace filter arrays resulted in zero records. Adjust side menu constraints.")
+        else:
+            # Dynamically load customer identifiers based on selected active filters
+            available_ucics = sorted(base_df["UCIC"].dropna().unique().tolist())
+            target_id = st.selectbox(
+                "Select Active Customer UCIC Key to Inspect:", 
+                options=available_ucics,
+                help="Sourced dynamically from filtered workspace memory matrix."
+            )
 
-        if target_id:
-            record = base_df[base_df["UCIC"] == target_id]
-            
-            if not record.empty:
-                # FIXED: Added positional extraction index [0] before serializing to dictionary
-                row_slice = record.iloc[0].to_dict()
+            if target_id:
+                record = base_df[base_df["UCIC"] == target_id]
                 
-                # Fetch regulatory risk assertions from backend business matrix modules
-                b_code, b_class, b_playbook = LoanCollectionsReportEngine.generate_audit_bucket_metadata(row_slice)
-                row_slice["RESPONSE_CODE_NEW"] = LoanCollectionsReportEngine.extract_field_action_code(row_slice)
-                
-                st.subheader(f"🛡️ Audit Inspector Panel: {target_id}")
-                
-                # Render Clean Immutable Status Markers
-                col_b1, col_b2 = st.columns(2)
-                col_b1.metric("Regulatory Bucket Code", b_code)
-                col_b2.metric("Portfolio Risk Tier", b_class)
+                if not record.empty:
+                    # Positional extraction index before serializing to dictionary
+                    row_slice = record.iloc[0].to_dict()
+                    
+                    # Fetch regulatory risk assertions from backend business matrix modules
+                    b_code, b_class, b_playbook = LoanCollectionsReportEngine.generate_audit_bucket_metadata(row_slice)
+                    row_slice["RESPONSE_CODE_NEW"] = LoanCollectionsReportEngine.extract_field_action_code(row_slice)
+                    
+                    st.subheader(f"🛡️ Audit Inspector Panel: {target_id}")
+                    
+                    # Render Clean Immutable Status Markers
+                    col_b1, col_b2 = st.columns(2)
+                    col_b1.metric("Regulatory Bucket Code", b_code)
+                    col_b2.metric("Portfolio Risk Tier", b_class)
 
-                st.text_area(
-                    label="Official Mandated Playbook Strategy Directive:", 
-                    value=b_playbook, 
-                    height=80, 
-                    disabled=True,
-                    help="Immutable policy directives governed by core risk compliance rule sets."
-                )
-                st.markdown("---")
+                    st.text_area(
+                        label="Official Mandated Playbook Strategy Directive:", 
+                        value=b_playbook, 
+                        height=80, 
+                        disabled=True,
+                        help="Immutable policy directives governed by core risk compliance rule sets."
+                    )
+                    st.markdown("---")
 
-                # Modular Presentation Elements Block
-                st.markdown("##### 🏷️ Sourcing & Identification Parameters")
-                WorkstationUIComponents.display_isolated_audit_field_block("Customer Legal Title", row_slice.get('CUSTOMERNAME', ''))
-                WorkstationUIComponents.display_isolated_audit_field_block("Loan Contract Number", row_slice.get('LOAN_NO', ''))
-                WorkstationUIComponents.display_isolated_audit_field_block("Originating Branch Title", row_slice.get('BRANCH_DESC', 'NONE'))
-                WorkstationUIComponents.display_isolated_audit_field_block("Core Banking SOL ID", row_slice.get('SOLID', 'NONE'))
-                WorkstationUIComponents.display_isolated_audit_field_block("Asset Allocation Zone", row_slice.get('RCLG_ZONE', 'NONE'))
-                WorkstationUIComponents.display_isolated_audit_field_block("Jurisdiction State", row_slice.get('STATE', 'NONE'))
-                
-                st.markdown("##### 💳 Financial Balances & Balances Aging Matrix")
-                try:
-                    disb_val = f"₹{int(float(row_slice.get('LAN_DISB_AMT', 0))):,}"
-                    pos_val = f"₹{int(float(row_slice.get('LAN_POS', 0))):,}"
-                    ovd_val = f"₹{int(float(row_slice.get('LAN_INST_OV_AMT', 0))):,}"
-                    charge_val = f"₹{int(float(row_slice.get('OVERDUE_CHARGE', 0))):,}"
-                except Exception:
-                    disb_val = row_slice.get('LAN_DISB_AMT', '0')
-                    pos_val = row_slice.get('LAN_POS', '0')
-                    ovd_val = row_slice.get('LAN_INST_OV_AMT', '0')
-                    charge_val = row_slice.get('OVERDUE_CHARGE', '0')
+                    # Modular Presentation Elements Block
+                    st.markdown("##### 🏷️ Sourcing & Identification Parameters")
+                    WorkstationUIComponents.display_isolated_audit_field_block("Customer Legal Title", row_slice.get('CUSTOMERNAME', ''))
+                    WorkstationUIComponents.display_isolated_audit_field_block("Loan Contract Number", row_slice.get('LOAN_NO', ''))
+                    WorkstationUIComponents.display_isolated_audit_field_block("Originating Branch Title", row_slice.get('BRANCH_DESC', 'NONE'))
+                    WorkstationUIComponents.display_isolated_audit_field_block("Core Banking SOL ID", row_slice.get('SOLID', 'NONE'))
+                    WorkstationUIComponents.display_isolated_audit_field_block("Asset Allocation Zone", row_slice.get('RCLG_ZONE', 'NONE'))
+                    WorkstationUIComponents.display_isolated_audit_field_block("Jurisdiction State", row_slice.get('STATE', 'NONE'))
+                    
+                    st.markdown("##### 💳 Financial Balances & Balances Aging Matrix")
+                    try:
+                        disb_val = f"₹{int(float(row_slice.get('LAN_DISB_AMT', 0))):,}"
+                        pos_val = f"₹{int(float(row_slice.get('LAN_POS', 0))):,}"
+                        ovd_val = f"₹{int(float(row_slice.get('LAN_INST_OV_AMT', 0))):,}"
+                        charge_val = f"₹{int(float(row_slice.get('OVERDUE_CHARGE', 0))):,}"
+                    except Exception:
+                        disb_val = row_slice.get('LAN_DISB_AMT', '0')
+                        pos_val = row_slice.get('LAN_POS', '0')
+                        ovd_val = row_slice.get('LAN_INST_OV_AMT', '0')
+                        charge_val = row_slice.get('OVERDUE_CHARGE', '0')
 
-                WorkstationUIComponents.display_isolated_audit_field_block("Original Disbursed Principal", disb_val)
-                WorkstationUIComponents.display_isolated_audit_field_block("Live Running Balance (POS)", pos_val)
-                WorkstationUIComponents.display_isolated_audit_field_block("Total Overdue Principal Due", ovd_val)
-                WorkstationUIComponents.display_isolated_audit_field_block("Accrued Outlier Penalty Fees", charge_val)
-                
-                st.markdown("##### 🚨 Delinquency Metrics & Enforcement Indicators")
-                WorkstationUIComponents.display_isolated_audit_field_block("Continuous Days Past Due", f"{row_slice.get('LAN_DPD', 0)} Days", is_critical=True)
-                WorkstationUIComponents.display_isolated_audit_field_block("Systemic Field Response Action Tag", row_slice.get('RESPONSE_CODE_NEW', 'PAID_VIA_CLEARING'), is_critical=True)
+                    WorkstationUIComponents.display_isolated_audit_field_block("Original Disbursed Principal", disb_val)
+                    WorkstationUIComponents.display_isolated_audit_field_block("Live Running Balance (POS)", pos_val)
+                    WorkstationUIComponents.display_isolated_audit_field_block("Total Overdue Principal Due", ovd_val)
+                    WorkstationUIComponents.display_isolated_audit_field_block("Accrued Outlier Penalty Fees", charge_val)
+                    
+                    st.markdown("##### 🚨 Delinquency Metrics & Enforcement Indicators")
+                    WorkstationUIComponents.display_isolated_audit_field_block("Continuous Days Past Due", f"{row_slice.get('LAN_DPD', 0)} Days", is_critical=True)
+                    WorkstationUIComponents.display_isolated_audit_field_block("Systemic Field Response Action Tag", row_slice.get('RESPONSE_CODE_NEW', 'PAID_VIA_CLEARING'), is_critical=True)
 
-                st.markdown("---")
-                
-                # Safe Structural Report PDF Compilation Trigger Block
-                pdf_payload = DocumentAuditFactory.generate_audit_pdf(target_id, row_slice, b_playbook)
-                st.download_button(
-                    label="Download Executive PDF Audit Report",
-                    data=pdf_payload,
-                    file_name=f"Audit_Report_{target_id}.pdf",
-                    mime="application/pdf",
-                    type="primary",
-                    use_container_width=True
-                )
+                    st.markdown("---")
+                    
+                    # Safe Structural Report PDF Compilation Trigger Block
+                    pdf_payload = DocumentAuditFactory.generate_audit_pdf(target_id, row_slice, b_playbook)
+                    st.download_button(
+                        label="Download Executive PDF Audit Report",
+                        data=pdf_payload,
+                        file_name=f"Audit_Report_{target_id}.pdf",
+                        mime="application/pdf",
+                        type="primary",
+                        use_container_width=True
+                    )
 
 with right_panel:
     st.markdown("### 📊 Reconciled Capital Exposure Share Frame")
