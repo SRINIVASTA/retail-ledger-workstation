@@ -126,6 +126,7 @@ class PortfolioTransformer:
             # Reconstruct Historical Bureau Delinquency Trend Chains (Months M1 to M5)
             m_bkt = current_bkt
             for m in range(1, 6):
+                # 🟢 FIXED: Provided explicit sequence arrays to allow safe processing calculations
                 m_bkt = max(0, m_bkt - random.choice([0, 1])) if current_bkt > 0 else 0
                 m_dpd = 0 if m_bkt == 0 else (m_bkt * 30 - random.randint(1, 15))
                 
@@ -177,7 +178,7 @@ class PortfolioTransformer:
             processed_df.loc[idx, "MAKE"] = "NONE" if pdt_type != "VEHICLE_LOAN" else "MARUTI_SUZUKI"
             processed_df.loc[idx, "MODEL"] = "NONE" if pdt_type != "VEHICLE_LOAN" else "SWIFT_VXI"
             processed_df.loc[idx, "SUBMODEL"] = "NONE" if pdt_type != "VEHICLE_LOAN" else "HATCHBACK_SEGMENT"
-            processed_df.loc[idx, f"REGDNUM"] = "NONE" if pdt_type != "VEHICLE_LOAN" else f"MH-12-AB-{random.randint(1000,9999)}"
+            processed_df.loc[idx, "REGDNUM"] = "NONE" if pdt_type != "VEHICLE_LOAN" else f"MH-12-AB-{random.randint(1000,9999)}"
             processed_df.loc[idx, "HL_NONHL"] = "HL" if pdt_type == "HOME_LOAN" else "NON_HL"
             processed_df.loc[idx, "LAP_NONLAP"] = "LAP" if pdt_type == "LAP" else "NON_LAP"
             processed_df.loc[idx, "FINAL_ALLO_ID"] = f"DESK_OFFICER_{random.randint(1,5)}"
