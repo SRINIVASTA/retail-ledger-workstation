@@ -1,8 +1,9 @@
 # app.py [PART 1: Infrastructure Initialization & Global Filters]
+import sys
 import pandas as pd
 import streamlit as st
 import logging 
-from io import BytesIO
+from io import BytesIO, StringIO
 
 # Relative path structural imports protecting runtime server bounds
 import config.constants as constants
@@ -99,7 +100,6 @@ if omni_search_box:
         base_df["CUSTOMERNAME"].astype(str).str.upper().str.contains(q, na=False)
     ]
 
-# Master Data Export Downloader (Maintains current filtered state if needed, or total layout)
 if not portfolio_df.empty:
     st.sidebar.markdown("##### 🗃️ Master Compliance Ledger Export")
     csv_buffer = BytesIO()
@@ -112,22 +112,45 @@ if not portfolio_df.empty:
         use_container_width=True
     )
 
+# ==============================================================================
+# SIDEBAR CONTROL CENTER - STEP 3: SYSTEMS STABILITY DIAGNOSTICS WITH DEBUGGING
+# ==============================================================================
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🛠️ Step 3: System Verification")
-run_diagnostics = st.sidebar.checkbox("Run System Diagnostics", value=False)
+run_diagnostics = st.sidebar.checkbox(
+    "Run System Diagnostics", 
+    value=False,
+    help="Tick this checkbox to run automated PyTest checks directly inside this Streamlit container server."
+)
 
 if run_diagnostics:
     st.sidebar.info("⏳ Running engine validations...")
     try:
         import pytest
-        exit_code = pytest.main(["-q", "--tb=short", "tests/test_calculations.py"])
+        
+        # Intercept standard output to print the exact test traceback on your dashboard screen
+        capture_buffer = StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = capture_buffer
+        
+        # Run tests with terminal verbosity enabled (-v)
+        exit_code = pytest.main(["-v", "--tb=long", "tests/test_calculations.py"])
+        
+        # Restore normal output routing streams
+        sys.stdout = old_stdout
+        test_logs = capture_buffer.getvalue()
+
         if exit_code == 0:
-            st.sidebar.success("✅ ALL TESTS PASSED!")
-            st.toast("System Integrity Verified", icon="✅")
+            st.sidebar.success("✅ ALL TESTS PASSED! Calculation engine validated.")
+            st.toast("System Integrity Verified: 100% Stable", icon="✅")
         else:
             st.sidebar.error("❌ CRITICAL BUG DETECTED!")
+            # Expose the hidden test traceback logs directly inside an expander drawer for troubleshooting
+            with st.sidebar.expander("🛠️ View Internal PyTest Error Details", expanded=True):
+                st.code(test_logs, language="text")
+                
     except Exception as e:
-        st.sidebar.error(f"Execution Exception: {e}")
+        st.sidebar.error(f"Execution Exception: Testing libraries missing. Details: {e}")
 # app.py [PART 2: Main Operational Viewport & Split Layout Panels]
 
 # Render Scoreboard KPI block responsive to deep geographic filters
