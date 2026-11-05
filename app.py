@@ -34,7 +34,7 @@ st.sidebar.markdown("### 📂 Step 1: Data Injection")
 uploaded_file = st.sidebar.file_uploader("Upload Portfolio Ledger CSV File", type=["csv"])
 
 if uploaded_file is None:
-    st.info("💡 **Welcome to CreditPulse AI!** Please upload your portfolio ledger CSV file using the sidebar.")
+    st.info("💡 **Welcome to CreditPulse AI!** Please upload your portfolio ledger CSV file using the sidebar to begin.")
     st.stop()
 
 @st.cache_data(show_spinner="Processing systemic multi-product ledger matrices...")
@@ -50,16 +50,46 @@ portfolio_df = parse_uploaded_ledger(uploaded_file)
 if portfolio_df is None or portfolio_df.empty: 
     st.stop()
 
-# Step 2: In-Workspace Filters
+# ==============================================================================
+# SIDEBAR CONTROL CENTER - STEP 2: MULTI-DIMENSIONAL HIERARCHICAL FILTERS
+# ==============================================================================
 st.sidebar.markdown("### 🎯 Step 2: Workspace Filtering")
+
+# 1. Product Slice
 product_options = ["[ SHOW ALL PRODUCTS ]", "PERSONAL_LOAN", "CREDIT_CARD", "VEHICLE_LOAN", "HOME_LOAN", "GOLD_LOAN", "LAP"]
 product_dropdown = st.sidebar.selectbox("Product Category:", product_options, index=0)
-omni_search_box = st.sidebar.text_input("Omni Search Filter:", placeholder="Type name, UCIC ID...").strip()
 
 if product_dropdown == "[ SHOW ALL PRODUCTS ]":
     base_df = portfolio_df.copy()
 else:
     base_df = portfolio_df[portfolio_df["LAN_PDT"].astype(str) == str(product_dropdown)]
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("##### 🗺️ Geographic Location Routing")
+
+# 2. Hierarchical Node 1: Reconciled Management Zone
+zone_options = ["[ ALL ZONES ]"] + sorted(base_df["RCLG_ZONE"].dropna().unique().tolist())
+selected_zone = st.sidebar.selectbox("Management Zone:", zone_options, index=0)
+
+if selected_zone != "[ ALL ZONES ]":
+    base_df = base_df[base_df["RCLG_ZONE"] == selected_zone]
+
+# 3. Hierarchical Node 2: State Jurisdiction (Filtered dynamically by Zone)
+state_options = ["[ ALL STATES ]"] + sorted(base_df["STATE"].dropna().unique().tolist())
+selected_state = st.sidebar.selectbox("Jurisdiction State:", state_options, index=0)
+
+if selected_state != "[ ALL STATES ]":
+    base_df = base_df[base_df["STATE"] == selected_state]
+
+# 4. Hierarchical Node 3: Branch Facility (Filtered dynamically by Zone and State)
+branch_options = ["[ ALL BRANCHES ]"] + sorted(base_df["BRANCH_DESC"].dropna().unique().tolist())
+selected_branch = st.sidebar.selectbox("Branch Facility:", branch_options, index=0)
+
+if selected_branch != "[ ALL BRANCHES ]":
+    base_df = base_df[base_df["BRANCH_DESC"] == selected_branch]
+
+st.sidebar.markdown("---")
+omni_search_box = st.sidebar.text_input("Omni Search Filter:", placeholder="Type name, UCIC ID...").strip()
 
 if omni_search_box:
     q = omni_search_box.upper()
@@ -69,6 +99,7 @@ if omni_search_box:
         base_df["CUSTOMERNAME"].astype(str).str.upper().str.contains(q, na=False)
     ]
 
+# Master Data Export Downloader (Maintains current filtered state if needed, or total layout)
 if not portfolio_df.empty:
     st.sidebar.markdown("##### 🗃️ Master Compliance Ledger Export")
     csv_buffer = BytesIO()
@@ -99,7 +130,7 @@ if run_diagnostics:
         st.sidebar.error(f"Execution Exception: {e}")
 # app.py [PART 2: Main Operational Viewport & Split Layout Panels]
 
-# Render Scoreboard KPI block
+# Render Scoreboard KPI block responsive to deep geographic filters
 counts = PortfolioTransformer.compute_bucket_counts(base_df)
 kpi_col1, kpi_col2, kpi_col3, kpi_col4, kpi_col5, kpi_col6 = st.columns(6)
 kpi_col1.metric("📊 TOTAL FILTERED", int(len(base_df)))
@@ -109,10 +140,12 @@ kpi_col4.metric("🟠 BUCKET 2", int(counts['b2']))
 kpi_col5.metric("🔴 BUCKET 3", int(counts['b3']))
 kpi_col6.metric("☠️ BUCKET 4+", int(counts['b4']))
 
-st.info(f"**Workspace Ledger State:** Active Subsets — Filter: {product_dropdown}")
+# Formulate location status string block
+loc_status = f"Zone: {selected_zone} | State: {selected_state} | Branch: {selected_branch}"
+st.info(f"**Workspace Ledger State:** Filter Mode: {product_dropdown} ({loc_status})")
 
 # Main Data Table Display Layer
-cols = ["UCIC", "LAN_PDT", "MODULE", "LOAN_NO", "CUSTOMERNAME", "LOAN_EMI", "LAN_INST_OV_AMT", "LAN_DPD", "BRANCH_DESC", "SOLID"]
+cols = ["UCIC", "LAN_PDT", "MODULE", "LOAN_NO", "CUSTOMERNAME", "LOAN_EMI", "LAN_INST_OV_AMT", "LAN_DPD", "BRANCH_DESC", "RCLG_ZONE", "STATE"]
 available_cols = [c for c in cols if c in base_df.columns]
 st.subheader("📋 Workspace Active Data Ledger Rows")
 st.dataframe(base_df[available_cols], use_container_width=True, hide_index=True)
@@ -132,15 +165,15 @@ with left_panel:
                 record = base_df[base_df["UCIC"] == target_id]
                 
                 if not record.empty:
-                    # 🟢 FIXED: Run fillna on the dataframe first, extract the index row, then cast to dict
+                    # Run dataframe level text validation before positional dict parsing
                     row_slice = record.fillna("NONE").iloc[0].to_dict()
                     
-                    # Convert unparsed empty whitespace characters or text "nan" strings to clean indicators
+                    # Intercept whitespace or missing string values
                     for key, val in list(row_slice.items()):
                         if str(val).strip() in ["", "nan", "NaN", "None", "NONE", "0"]:
                             row_slice[key] = "NONE"
                     
-                    # 🟢 CRITICAL FRONTEND FALLBACK: If MODULE is empty/NONE, dynamically deduce it right here
+                    # Direct client field fallback verification
                     if row_slice.get("MODULE") == "NONE":
                         pdt = str(row_slice.get("LAN_PDT", "")).strip().upper()
                         if pdt in ["HOME_LOAN", "LAP"]:
@@ -206,7 +239,7 @@ with left_panel:
 with right_panel:
     st.markdown("### 📊 Reconciled Capital Exposure Share Frame")
     if base_df.empty: 
-        st.info("⚠️ No active data available to generate capital visualizations.")
+        st.info("⚠️ No active dataset variations available to output visual metrics.")
     else: 
         st.plotly_chart(ExposureChartFactory.generate_exposure_chart(base_df, product_dropdown), use_container_width=True)
 
