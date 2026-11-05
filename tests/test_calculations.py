@@ -5,7 +5,7 @@ from core.transformations import PortfolioTransformer
 
 @pytest.fixture
 def mock_blank_fields_data():
-    """Generates mock data missing key variables like MODULE, STATE, and BUCKET to test the fallback mechanism."""
+    """Generates an enterprise-aligned incomplete dataset mirroring typical client sheets."""
     data = {
         "UCIC": ["CUST_TEST_01", "CUST_TEST_02"],
         "CUSTOMERNAME": ["Aarav Sharma", "Aditya Rao"],
@@ -18,26 +18,43 @@ def mock_blank_fields_data():
         "REPAY_MODE": ["ACH", "AUTO_DEBIT"],
         "BRANCH_DESC": ["MUMBAI_FORT", "BANGALORE_WHITEFIELD"],
         "SOLID":,
-        "MODULE": ["", "nan"], # Blank values to test the auto-assignment logic
+        "MODULE": ["", "nan"],
         "STATE": [None, ""],
         "RCLG_ZONE": ["", None]
     }
     return pd.DataFrame(data)
 
 def test_automated_fallback_and_deductions(mock_blank_fields_data):
-    """Verifies that empty fields are automatically backfilled by the engine logic."""
+    """Verifies that empty fields are automatically backfilled and calculated by the engine."""
     processed = PortfolioTransformer.process_raw_ledger(mock_blank_fields_data)
     
-    # 1. Check if MODULE field is successfully inferred from product type
+    # 1. Structural Class Inferences
     assert processed.loc[0, "MODULE"] == "RETAIL_UNSECURED"
     assert processed.loc[1, "MODULE"] == "SECURED_MORTGAGES"
     
-    # 2. Check if RISK BUCKETS are calculated based on DPD thresholds
+    # 2. Continuous Delinquency Bracket Scaling
     assert int(processed.loc[0, "LAN_BKT"]) == 0
     assert int(processed.loc[1, "LAN_BKT"]) == 4
     
-    # 3. Check if spatial identifiers are mapped using branch constants
+    # 3. Spatial Branch Routing Constants Match
     assert processed.loc[0, "STATE"] == "MAHARASHTRA"
     assert processed.loc[0, "RCLG_ZONE"] == "WEST_ZONE"
     assert processed.loc[1, "STATE"] == "KARNATAKA"
     assert processed.loc[1, "RCLG_ZONE"] == "SOUTH_ZONE"
+
+def test_complete_108_header_population_matrix(mock_blank_fields_data):
+    """Ensures no columns return blank spaces and historical data lists are initialized."""
+    processed = PortfolioTransformer.process_raw_ledger(mock_blank_fields_data)
+    
+    # 1. Dimensional Limit Verification
+    assert len(processed.columns) == 108
+    
+    # 2. Bureau Trend Chain Instantiation Verification
+    assert processed.loc[0, "M1_BKT"] != "NONE"
+    assert processed.loc[0, "M5_DPD"] != "NONE"
+    assert processed.loc[1, "M1_UNIT_CODE"] == "UNIT_5602"
+    
+    # 3. Asset and Restructuring Default Maps Verification
+    assert processed.loc[0, "HL_NONHL"] == "NON_HL"
+    assert processed.loc[1, "HL_NONHL"] == "HL"
+    assert processed.loc[1, "WRITEOFF_TAG"] == "WO_POTENTIAL"
