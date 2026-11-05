@@ -4,12 +4,20 @@ import streamlit as st
 import logging 
 from io import BytesIO
 
-# Enterprise Architecture Module Imports
-from app.components import WorkstationUIComponents
-from app.visualizer import ExposureChartFactory
-from core.transformations import PortfolioTransformer
-from business.playbooks import LoanCollectionsReportEngine
-from reports.pdf_factory import DocumentAuditFactory
+# FIXED: Standardised relative references to prevent ModuleNotFoundError on Streamlit Server
+import config.constants as constants
+import core.transformations as transformations
+import business.playbooks as playbooks
+import reports.pdf_factory as pdf_factory
+import app.components as components
+import app.visualizer as visualizer
+
+# Re-link aliases to match your downstream variable namespaces perfectly
+WorkstationUIComponents = components.WorkstationUIComponents
+ExposureChartFactory = visualizer.ExposureChartFactory
+PortfolioTransformer = transformations.PortfolioTransformer
+LoanCollectionsReportEngine = playbooks.LoanCollectionsReportEngine
+DocumentAuditFactory = pdf_factory.DocumentAuditFactory
 
 # Initialize Core Logging Infrastructure
 logging.basicConfig(level=logging.INFO) 
