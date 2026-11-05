@@ -5,23 +5,23 @@ from core.transformations import PortfolioTransformer
 
 @pytest.fixture
 def mock_blank_fields_data():
-    """Generates a structurally complete mock dataframe with default testing arrays to validate fallback behavior."""
-    data = {
-        "UCIC": ["CUST_TEST_01", "CUST_TEST_02"],
-        "CUSTOMERNAME": ["Aarav Sharma", "Aditya Rao"],
-        "LOAN_NO": ["LN-PL-101", "LN-HL-301"],
-        "LAN_PDT": ["PERSONAL_LOAN", "HOME_LOAN"],
-        "DISB_DATE": ["12-04-2024", "11-01-2022"],
-        "LAN_DISB_AMT":,
-        "LOAN_EMI":,
-        "LAN_DPD":,
-        "REPAY_MODE": ["ACH", "AUTO_DEBIT"],
-        "BRANCH_DESC": ["MUMBAI_FORT", "BANGALORE_WHITEFIELD"],
-        "SOLID":,
-        "MODULE": ["", "nan"],
-        "STATE": [None, ""],
-        "RCLG_ZONE": ["", None]
-    }
+    """Generates a clean mock dataframe dynamically to avoid file serialization syntax errors."""
+    data = {}
+    data["UCIC"] = ["CUST_TEST_01", "CUST_TEST_02"]
+    data["CUSTOMERNAME"] = ["Aarav Sharma", "Aditya Rao"]
+    data["LOAN_NO"] = ["LN-PL-101", "LN-HL-301"]
+    data["LAN_PDT"] = ["PERSONAL_LOAN", "HOME_LOAN"]
+    data["DISB_DATE"] = ["12-04-2024", "11-01-2022"]
+    data["LAN_DISB_AMT"] = [300000, 4500000]
+    data["LOAN_EMI"] = [12500, 39500]
+    data["LAN_DPD"] = [0, 95]
+    data["REPAY_MODE"] = ["ACH", "AUTO_DEBIT"]
+    data["BRANCH_DESC"] = ["MUMBAI_FORT", "BANGALORE_WHITEFIELD"]
+    data["SOLID"] = [4001, 5602]
+    data["MODULE"] = ["", "nan"]
+    data["STATE"] = [None, ""]
+    data["RCLG_ZONE"] = ["", None]
+    
     return pd.DataFrame(data)
 
 def test_automated_fallback_and_deductions(mock_blank_fields_data):
