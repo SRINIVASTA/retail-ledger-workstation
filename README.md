@@ -45,6 +45,7 @@ sequenceDiagram
 
 ## 📁 Repository Directory Tree
 
+```text
 📁 creditpulse-ai-workstation/
 ├── 📁 .streamlit/
 │   └── config.toml                  # Global Dark-Theme Layout Server Configs
@@ -71,6 +72,8 @@ sequenceDiagram
 ├── loan_master_portfolio_5_buckets.csv # Geographic Mock Data Matrix File
 ├── requirements.txt                 # Dependency Framework Metrics
 └── setup.py                         # Local Editable Packager Configurations
+```
+
 ---
 
 ## 🚀 Local Host Installation & Boot Instructions
