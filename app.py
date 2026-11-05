@@ -132,8 +132,14 @@ with left_panel:
                 record = base_df[base_df["UCIC"] == target_id]
                 
                 if not record.empty:
-                    # Positional row slice dictionary conversion
-                    row_slice = record.iloc[0].to_dict()
+                    # 🟢 SAFE DICTIONARY CLEANER INDENTED HERE: Eliminates blank float NaNs from UI renders
+                    row_series = record.iloc[0].fillna("NONE")
+                    row_slice = row_series.to_dict()
+                    
+                    # Convert unparsed empty whitespace characters to standard labels
+                    for key, val in row_slice.items():
+                        if str(val).strip() in ["", "nan", "NaN", "None"]:
+                            row_slice[key] = "NONE"
                     
                     b_code, b_class, b_playbook = LoanCollectionsReportEngine.generate_audit_bucket_metadata(row_slice)
                     row_slice["RESPONSE_CODE_NEW"] = LoanCollectionsReportEngine.extract_field_action_code(row_slice)
