@@ -172,7 +172,8 @@ with left_panel:
             record = base_df[base_df["UCIC"] == target_id]
             
             if not record.empty:
-                row_slice = record.iloc.to_dict()
+                # FIXED: Added positional extraction index [0] before serializing to dictionary
+                row_slice = record.iloc[0].to_dict()
                 
                 # Fetch regulatory risk assertions from backend business matrix modules
                 b_code, b_class, b_playbook = LoanCollectionsReportEngine.generate_audit_bucket_metadata(row_slice)
