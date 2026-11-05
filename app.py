@@ -132,14 +132,23 @@ with left_panel:
                 record = base_df[base_df["UCIC"] == target_id]
                 
                 if not record.empty:
-                    # 🟢 SAFE DICTIONARY CLEANER INDENTED HERE: Eliminates blank float NaNs from UI renders
-                    row_series = record.iloc[0].fillna("NONE")
-                    row_slice = row_series.to_dict()
+                    # 🟢 FIXED: Run fillna on the dataframe first, extract the index row, then cast to dict
+                    row_slice = record.fillna("NONE").iloc[0].to_dict()
                     
-                    # Convert unparsed empty whitespace characters to standard labels
-                    for key, val in row_slice.items():
-                        if str(val).strip() in ["", "nan", "NaN", "None"]:
+                    # Convert unparsed empty whitespace characters or text "nan" strings to clean indicators
+                    for key, val in list(row_slice.items()):
+                        if str(val).strip() in ["", "nan", "NaN", "None", "NONE", "0"]:
                             row_slice[key] = "NONE"
+                    
+                    # 🟢 CRITICAL FRONTEND FALLBACK: If MODULE is empty/NONE, dynamically deduce it right here
+                    if row_slice.get("MODULE") == "NONE":
+                        pdt = str(row_slice.get("LAN_PDT", "")).strip().upper()
+                        if pdt in ["HOME_LOAN", "LAP"]:
+                            row_slice["MODULE"] = "SECURED_MORTGAGES"
+                        elif pdt == "CREDIT_CARD":
+                            row_slice["MODULE"] = "UNSECURED_CARDS"
+                        else:
+                            row_slice["MODULE"] = "RETAIL_UNSECURED"
                     
                     b_code, b_class, b_playbook = LoanCollectionsReportEngine.generate_audit_bucket_metadata(row_slice)
                     row_slice["RESPONSE_CODE_NEW"] = LoanCollectionsReportEngine.extract_field_action_code(row_slice)
