@@ -32,7 +32,7 @@ def test_automated_fallback_and_deductions(mock_blank_fields_data):
     assert processed.loc[0, "MODULE"] == "RETAIL_UNSECURED"
     assert processed.loc[1, "MODULE"] == "SECURED_MORTGAGES"
     
-    # 2. Continuous Delinquency Bracket Verification (Bucket 4 for 95 DPD)
+    # 2. Continuous Delinquency Bracket Verification
     assert int(processed.loc[0, "LAN_BKT"]) == 0
     assert int(processed.loc[1, "LAN_BKT"]) == 4
     
