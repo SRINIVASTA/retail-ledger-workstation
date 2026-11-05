@@ -1,3 +1,5 @@
+# .streamlit/config.toml
+
 [server]
 headless = true
 address = "0.0.0.0"
