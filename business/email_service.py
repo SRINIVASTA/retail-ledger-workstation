@@ -10,58 +10,51 @@ import streamlit as st
 logger = logging.getLogger("CREDITPULSE_WORKSTATION.EMAIL_SERVICE")
 
 class EnterpriseEmailDispatcher:
-    """Handles production-grade secure email dispatch with dynamic binary attachments."""
+    """Handles secure email dispatch with attachments matching your exact secrets format."""
     
     @staticmethod
     def send_audit_report(recipient_email: str, customer_name: str, loan_no: str, pdf_bytes: bytes) -> bool:
-        """
-        Packages and dispatches a compliance PDF report to a specified customer.
-        Fetches credentials safely from Streamlit's enterprise secrets engine.
-        """
         try:
-            # 1. Fetch encrypted pipeline configurations from st.secrets
-            SMTP_SERVER = st.secrets.get("SMTP_SERVER", "://gmail.com")
-            SMTP_PORT = int(st.secrets.get("SMTP_PORT", 587))
-            SENDER_EMAIL = st.secrets.get("SENDER_EMAIL", "alerts@yourbank.com")
-            SENDER_PASSWORD = st.secrets.get("SENDER_PASSWORD", "")
+            # 1. Fetch credentials using your nested secret structure
+            try:
+                email_sender = st.secrets["gmail"]["username"]
+                app_password = st.secrets["gmail"]["app_password"]
+            except KeyError:
+                raise KeyError("Missing Gmail credentials! Ensure [gmail] structure is set in Secrets.")
 
-            if not SENDER_PASSWORD:
-                raise ValueError("SMTP authentication credentials missing in workspace secrets.")
-
-            # 2. Build the structural multi-part container
+            # 2. Build structural multi-part container for handling the file attachment
             msg = MIMEMultipart()
-            msg['From'] = SENDER_EMAIL
+            msg['From'] = email_sender
             msg['To'] = recipient_email
             msg['Subject'] = f"Secure Compliance Audit Report — Account: {loan_no}"
 
-            # 3. Construct professional cover message
+            # 3. Construct the dynamic cover body
             body = (
                 f"Dear {customer_name},\n\n"
                 f"Please find attached your secure CreditPulse Master Compliance Audit Report "
                 f"corresponding to Loan Account Number {loan_no}.\n\n"
-                f"This is an automated operational system update. Please do not reply directly to this thread.\n\n"
                 f"Sincerely,\n"
                 f"CreditPulse Operations Hub"
             )
             msg.attach(MIMEText(body, 'plain'))
 
-            # 4. Stream and encode the PDF binary payload into standard base64 attachment block
+            # 4. Stream and encode the PDF binary report payload into standard base64
             part = MIMEBase('application', 'octet-stream')
             part.set_payload(pdf_bytes)
             encoders.encode_base64(part)
             part.add_header('Content-Disposition', f'attachment; filename="Audit_Report_{loan_no}.pdf"')
             msg.attach(part)
 
-            # 5. Connect via secure TLS encryption pipeline and deliver
-            server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+            # 5. Connect to mail host and deliver the package 
+            server = smtplib.SMTP('smtp.gmail.com', 587)
             server.starttls()
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            server.sendmail(SENDER_EMAIL, recipient_email, msg.as_string())
+            server.login(email_sender, app_password)
+            server.sendmail(email_sender, recipient_email, msg.as_string())
             server.quit()
 
-            logger.info(f"Successfully dispatched compliance asset to {recipient_email}")
+            logger.info(f"Successfully dispatched asset report to {recipient_email}")
             return True
 
         except Exception as e:
-            logger.error(f"Failed to execute enterprise email broadcast to {recipient_email}: {e}")
+            logger.error(f"Failed to execute email broadcast to {recipient_email}: {e}")
             raise e
