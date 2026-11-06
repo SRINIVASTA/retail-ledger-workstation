@@ -2,7 +2,7 @@
 
 An enterprise-ready financial workstation built with Streamlit for processing multi-product retail banking portfolios, risk-regulatory delinquency arrays, and parallel mock analytics across a 108-column bureau compliance ledger schema.
 
-<img src="bio-twin-mitt-core.png" width="100%">
+<img src="desktop.png" width="100%">
 
 ## 🏛️ System Architecture
 
