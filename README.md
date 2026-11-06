@@ -68,6 +68,7 @@ sequenceDiagram
 ├── 📁 tests/
 │   ├── __init__.py
 │   └── test_calculations.py         # Math Engine & Fallback Invariant Tests
+|   └── test_mock_distribution.py         
 ├── app.py                           # Modular Application Entrypoint
 ├── loan_master_portfolio_5_buckets.csv # Geographic Mock Data Matrix File
 ├── requirements.txt                 # Dependency Framework Metrics
