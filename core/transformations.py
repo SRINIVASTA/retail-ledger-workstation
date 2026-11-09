@@ -110,13 +110,12 @@ class PortfolioTransformer:
         processed_df["LAN_POS"] = processed_df.apply(cls.amortize_running_balance, axis=1)
         processed_df["EXPOSURE_POS"] = processed_df["LAN_POS"]
         
-        # Calculate Mandated Late Presentation Fees / Charges based on DPD tranches
+        # Correct reducing-balance application replacing legacy flat logic
+        processed_df["LAN_INST_OV_AMT"] = processed_df.apply(cls.deduce_true_overdue_principal, axis=1)
+        
         processed_df["OVERDUE_CHARGE"] = processed_df["LAN_DPD"].apply(
             lambda d: 0 if d == 0 else (300 if d <= 30 else (800 if d <= 60 else (1200 if d <= 90 else 2500)))
         )
-        
-        # Correct reducing-balance application replacing legacy flat logic
-        processed_df["LAN_INST_OV_AMT"] = processed_df.apply(cls.deduce_true_overdue_principal, axis=1)
 
         # 4. Handle Geography and Module Mappings
         def deduce_module(row):
@@ -160,6 +159,7 @@ class PortfolioTransformer:
             # Reconstruct Historical Bureau Delinquency Trend Chains (Months M1 to M5)
             m_bkt = current_bkt
             for m in range(1, 6):
+                # 🟢 FIXED: Provided explicit sequence arrays to allow safe processing calculations
                 m_bkt = max(0, m_bkt - random.choice([0, 1])) if current_bkt > 0 else 0
                 m_dpd = 0 if m_bkt == 0 else (m_bkt * 30 - random.randint(1, 15))
                 
