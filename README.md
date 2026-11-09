@@ -97,15 +97,17 @@ The engine dynamically cross-references the following product interest profile r
 
 Mandated late presentation penalties are calculated and applied to the transaction vectors dynamically on the cycle processing date based on the following **Days Past Due (DPD)** milestone limits:
 
-  ┌───────────────────┬───────────────────┐
-  │ DPD Threshold Log │ Penalty Charge    │
-  ├───────────────────┼───────────────────┤
-  │ 0 Days (Current)  │ ₹0                │
-  │ 1 to 30 Days      │ ₹300              │
-  │ 31 to 60 Days     │ ₹800              │
-  │ 61 to 90 Days     │ ₹1,200            │
-  │ Over 90 Days (NPA)│ ₹2,500            │
-  └───────────────────┴───────────────────┘
+```text
+┌───────────────────┬───────────────────┐
+│ DPD Threshold Log │ Penalty Charge    │
+├───────────────────┼───────────────────┤
+│ 0 Days (Current)  │ ₹0                │
+│ 1 to 30 Days      │ ₹300              │
+│ 31 to 60 Days     │ ₹800              │
+│ 61 to 90 Days     │ ₹1,200            │
+│ Over 90 Days (NPA)│ ₹2,500            │
+└───────────────────┴───────────────────┘
+```
 
 ---
 
