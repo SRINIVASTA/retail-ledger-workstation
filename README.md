@@ -79,6 +79,35 @@ sequenceDiagram
 
 ---
 
+## 📊 Financial Interest Profiles (`config/constants.py`)
+
+The engine dynamically cross-references the following product interest profile registry inside `core/transformations.py` to drive the monthly reducing-balance backtrace calculations:
+
+| Product Group (`LAN_PDT`) | Annual Interest Rate | Security Status | Default System Behaviour & Invariants |
+| :--- | :---: | :--- | :--- |
+| **`GOLD_LOAN`** | **7.50%** | Secured (Asset) | Lowest risk tier. Escalates immediately to public jewelry asset auction past 90 DPD. |
+| **`HOME_LOAN`** | **8.67%** | Secured (Mortgage) | Standard residential mortgage interest structure. Verified on Yash Mishr's account. |
+| **`VEHICLE_LOAN`** | **10.25%** | Secured (Asset) | Vehicle asset financing rules. Automatically generates matching model tracking chains. |
+| **`PERSONAL_LOAN`** | **11.00%** | Unsecured Retail | **System Core Fallback Rate** applied automatically if product tags are missing or blank. |
+| **`LAP`** *(Loan Against Property)* | **13.50%** | Secured (Mortgage) | Commercial mortgage risk tier. Verified on Rahul Dravid's account. |
+| **`CREDIT_CARD`** | **36.00%** | Unsecured Credit | Highest yield premium line. Revokes interest-free grace periods instantly upon payment defaults. |
+
+---
+## 💸 Penalty & Late Fee Tranches (`OVERDUE_CHARGE`)
+
+Mandated late presentation penalties are calculated and applied to the transaction vectors dynamically on the cycle processing date based on the following **Days Past Due (DPD)** milestone limits:
+
+  ┌───────────────────┬───────────────────┐
+  │ DPD Threshold Log │ Penalty Charge    │
+  ├───────────────────┼───────────────────┤
+  │ 0 Days (Current)  │ ₹0                │
+  │ 1 to 30 Days      │ ₹300              │
+  │ 31 to 60 Days     │ ₹800              │
+  │ 61 to 90 Days     │ ₹1,200            │
+  │ Over 90 Days (NPA)│ ₹2,500            │
+  └───────────────────┴───────────────────┘
+---
+
 ## 🚀 Local Host Installation & Boot Instructions
 
 To run the workstation engine locally on your machine, follow these steps:
