@@ -106,6 +106,7 @@ Mandated late presentation penalties are calculated and applied to the transacti
   │ 61 to 90 Days     │ ₹1,200            │
   │ Over 90 Days (NPA)│ ₹2,500            │
   └───────────────────┴───────────────────┘
+
 ---
 
 ## 🚀 Local Host Installation & Boot Instructions
