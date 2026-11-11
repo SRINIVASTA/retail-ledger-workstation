@@ -9,16 +9,33 @@ An enterprise-ready financial workstation built with Streamlit for processing mu
 The workstation decouples transactional computation routines (Zero I/O Core) from presentation layers to maintain a predictable analytical interface.
 
 ```mermaid
-graph TD
-    A[Spreadsheet Ingestion Node] -->|Raw Minimal CSV Matrix| B(core/transformations.py)
-    B -->|1. Geotechnical Resolution Maps| C{PortfolioTransformer}
-    B -->|2. Amortization Vectors| C
-    B -->|3. Bureau History Mock Chains| C
-    C -->|Unified 108-Column Ledger| D[In-Memory Session Context]
-    D -->|Presentation Layer Interceptor| E(app/components.py)
-    D -->|Plotly Matrix Rendering| F(app/visualizer.py)
-    D -->|Compliance Audit Rules| G(business/playbooks.py)
-    D -->|ReportLab Template Compiler| H(reports/pdf_factory.py)
+flowchart TD
+    %% Architecture Pipeline Nodes
+    A[Spreadsheet Ingestion Node] e1@-->|Raw Minimal CSV Matrix| B(core/transformations.py)
+    B e2@-->|1. Geotechnical Resolution Maps| C{PortfolioTransformer}
+    B e3@-->|2. Amortization Vectors| C
+    B e4@-->|3. Bureau History Mock Chains| C
+    C e5@-->|Unified 108-Column Ledger| D[In-Memory Session Context]
+    D e6@-->|Presentation Layer Interceptor| E(app/components.py)
+    D e7@-->|Plotly Matrix Rendering| F(app/visualizer.py)
+    D e8@-->|Compliance Audit Rules| G(business/playbooks.py)
+    D e9@-->|ReportLab Template Compiler| H(reports/pdf_factory.py)
+
+    %% Running Flow Animation Definitions
+    e1@{ animate: true }
+    e2@{ animate: true }
+    e3@{ animate: true }
+    e4@{ animate: true }
+    e5@{ animate: true }
+    e6@{ animate: true }
+    e7@{ animate: true }
+    e8@{ animate: true }
+    e9@{ animate: true }
+
+    %% Clean Visual Styling
+    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    style C fill:#fff8e1,stroke:#f9a825,stroke-width:2px;
+    style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
 ```
 
 ### Ingestion & Extrapolation Lifecycle Pipeline
@@ -69,8 +86,8 @@ sequenceDiagram
 │   └── pdf_factory.py               # ReportLab Compliance Document Compiler
 ├── 📁 tests/
 │   ├── __init__.py
-│   └── test_calculations.py         # Math Engine & Fallback Invariant Tests
-|   └── test_mock_distribution.py         
+│   ├── test_calculations.py         # Math Engine & Fallback Invariant Tests
+│   └── test_mock_distribution.py         
 ├── app.py                           # Modular Application Entrypoint
 ├── loan_master_portfolio_5_buckets.csv # Geographic Mock Data Matrix File
 ├── requirements.txt                 # Dependency Framework Metrics
