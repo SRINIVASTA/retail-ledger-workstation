@@ -41,41 +41,34 @@ flowchart TD
 ### Ingestion & Extrapolation Lifecycle Pipeline
 
 ```mermaid
-flowchart TD
-    %% Actors & System Modules
-    Auditor([👤 Compliance Auditor])
-    UI[app.py: Streamlit Layer]
-    Core(core/transformations.py: Math Core)
-    Rules(business/playbooks.py: Rules Engine)
+sequenceDiagram
+    autonumber
+    actor Auditor as Compliance Auditor
+    participant UI as app.py (Streamlit Layer)
+    participant Core as core/transformations.py (Math Core)
+    participant Rules as business/playbooks.py (Rules Engine)
+    
+    rect rgb(232, 245, 233)
+    Note right of Auditor: Phase 1: Ingestion & 108-Column Extrapolation
+    Auditor->>UI: Upload Minimal 14-Column Ledger CSV
+    UI->>Core: Ingest Raw Data Matrix
+    Note over Core: Process Incomplete Keys,<br/>Deduce Missing Modules/Zones,<br/>Generate M1-M5 Bureau Chains.
+    Core-->>UI: Return Fully Populated 108-Column DataFrame
+    UI->>UI: Render KPI Scoreboard & Active Presentation Grids
+    end
 
-    %% Numbered Lifecycle Flow
-    Auditor e1@-->|1. Upload Minimal 14-Column Ledger CSV| UI
-    UI e2@-->|2. Ingest Raw Data Matrix| Core
-    Core e3@-.->|3. Deduce Modules/Zones & M1-M5 Chains:<br/>Return 108-Column DataFrame| UI
-    UI e4@-->|4. Render KPI Scoreboard & Active Grids| Auditor
-    Auditor e5@-->|5. Select Customer Identity Key UCIC| UI
-    UI e6@-->|6. Pass Context Row Dictionary Slice| Rules
-    Rules e7@-.->|7. Output Policy Directives & Legal Codes| UI
-    Auditor e8@-->|8. Trigger Executive Audit Export Action| UI
-    UI e9@-.->|9. Compile & Serve ReportLab PDF Stream| Auditor
+    rect rgb(227, 242, 253)
+    Note right of Auditor: Phase 2: Delinquency & Playbook Evaluation
+    Auditor->>UI: Select Customer Identity Key (UCIC)
+    UI->>Rules: Pass Context Row Dictionary Slice
+    Rules-->>UI: Output Policy Directives & Legal Action Codes
+    end
 
-    %% Running Flow Animation Definitions
-    e1@{ animate: true }
-    e2@{ animate: true }
-    e3@{ animate: true }
-    e4@{ animate: true }
-    e5@{ animate: true }
-    e6@{ animate: true }
-    e7@{ animate: true }
-    e8@{ animate: true }
-    e9@{ animate: true }
-
-    %% Clean Role Styling
-    style Auditor fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
-    style UI fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-    style Core fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-    style Rules fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px;
-```
+    rect rgb(255, 243, 224)
+    Note right of Auditor: Phase 3: Executive Report Generation
+    Auditor->>UI: Trigger Executive Audit Export Action
+    UI-->>Auditor: Compile & Serve Clean ReportLab PDF Stream
+    end
 ```
 
 ---
