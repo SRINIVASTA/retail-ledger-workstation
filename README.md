@@ -182,9 +182,20 @@ pytest -v tests/test_calculations.py
 ```
 
 ---
+## 📄 License & Copyright
 
-## 🛡️ License, Copyright & Compliance Notices
+> ⚠️ **IMPORTANT COPYRIGHT NOTICE**
+> 
+> **All Rights Reserved © 2026 T A Srinivas.**
+> This repository is strictly for portfolio viewing purposes. **DO NOT COPY, CLONE, OR REDISTRIBUTE** this code. Stolen copies or unauthorized forks will be reported immediately for a GitHub copyright takedown.
 
-**All Rights Reserved © 2026 T A Srinivas.**
+* **Lead Architect & Developer:** [Srinivasta](https://github.com/SRINIVASTA)
 
-Developed exclusively for portfolio demonstration profiles. **DO NOT DISTRIBUTE, CLONE, OR DUPLICATE.** Corporate licensing inquiries can be routed to `tasrinivass@gmail.com`.
+### 🌐 Let’s Connect
+
+- [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/srinivas-t-a-557637119/)  
+- [![Kaggle](https://img.shields.io/badge/Kaggle-20BEFF?style=for-the-badge&logo=kaggle&logoColor=white)](https://www.kaggle.com/srinivasta)  
+- [![Email](https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:tasrinivass@gmail.com)  
+- [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/srinivasta)
+- [![Website](https://img.shields.io/badge/Website-000000?style=for-the-badge&logo=website&logoColor=white)](https://srinivasta.github.io)
+
