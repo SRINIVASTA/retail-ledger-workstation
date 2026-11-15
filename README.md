@@ -4,7 +4,7 @@ An enterprise-ready financial workstation built with Streamlit for processing mu
 
 ### ⭐ Show Your Support
 
-If you like the UI design, system architecture, or engineering behind **Uttaram**, please consider giving this repository a **Star ⭐** on GitHub! It helps showcase this work and motivates future builds.
+If you like the UI design, system architecture, or financial engineering behind **CreditPulse AI**, please consider giving this repository a **Star ⭐** on GitHub! It helps showcase this work and motivates future builds.
 
 
 <img src="desktop.png" width="100%">
