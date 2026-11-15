@@ -2,6 +2,11 @@
 
 An enterprise-ready financial workstation built with Streamlit for processing multi-product retail banking portfolios, risk-regulatory delinquency arrays, and parallel mock analytics across a 108-column bureau compliance ledger schema.
 
+### ⭐ Show Your Support
+
+If you like the UI design, system architecture, or engineering behind **Uttaram**, please consider giving this repository a **Star ⭐** on GitHub! It helps showcase this work and motivates future builds.
+
+
 <img src="desktop.png" width="100%">
 
 ## 🏛️ System Architecture
